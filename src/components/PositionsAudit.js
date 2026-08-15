@@ -73,23 +73,26 @@ export default function PositionsAudit({ positions = [], tradeHistory = [], onCl
             </thead>
             <tbody>
               {tradeHistory && tradeHistory.length > 0 ? (
-                tradeHistory.map((t, idx) => (
-                  <tr key={idx}>
-                    <td style={{ fontSize: '11px', color: '#94a3b8' }}>{t.id || idx}</td>
-                    <td style={{ color: t.type === 'BUY' ? '#10b981' : '#f43f5e', fontWeight: 600 }}>{t.type}</td>
-                    <td>{t.symbol}</td>
-                    <td>${t.price ? t.price.toFixed(2) : '0.00'}</td>
-                    <td>{t.amount ? t.amount.toFixed(4) : '0.00'}</td>
-                    <td style={{ color: t.pnlUSD > 0 ? '#10b981' : t.pnlUSD < 0 ? '#f43f5e' : '#94a3b8' }}>
-                      {t.pnlUSD !== undefined ? `$${t.pnlUSD.toFixed(2)}` : '--'}
-                    </td>
-                    <td style={{ fontSize: '11px', color: '#94a3b8' }}>{t.reason || '--'}</td>
-                    <td style={{ fontSize: '11px', color: '#64748b' }}>{new Date(t.timestamp).toLocaleTimeString()}</td>
-                  </tr>
-                ))
+                tradeHistory.map((t, idx) => {
+                  const displayTime = t.time || (t.timestamp && !isNaN(new Date(t.timestamp).getTime()) ? new Date(t.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString());
+                  return (
+                    <tr key={idx}>
+                      <td style={{ fontSize: '11px', color: '#94a3b8' }}>{t.id || t.tradeId || idx}</td>
+                      <td style={{ color: t.type === 'BUY' ? '#10b981' : '#f43f5e', fontWeight: 600 }}>{t.type}</td>
+                      <td>{t.symbol}</td>
+                      <td>${t.price ? Number(t.price).toFixed(2) : '0.00'}</td>
+                      <td>{t.amount ? Number(t.amount).toFixed(4) : '0.00'}</td>
+                      <td style={{ color: t.pnlUSD > 0 ? '#10b981' : t.pnlUSD < 0 ? '#f43f5e' : '#94a3b8' }}>
+                        {t.pnlUSD !== undefined ? `$${Number(t.pnlUSD).toFixed(2)}` : '--'}
+                      </td>
+                      <td style={{ fontSize: '11px', color: '#94a3b8' }}>{t.reason || '--'}</td>
+                      <td style={{ fontSize: '11px', color: '#64748b' }}>{displayTime}</td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan="8" className="text-center">No trades executed yet.</td>
+                  <td colSpan="8" className="text-center">No trades executed yet. Click BUY or SELL button to place a trade.</td>
                 </tr>
               )}
             </tbody>
