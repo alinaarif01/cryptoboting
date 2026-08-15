@@ -5,7 +5,8 @@ import Wallet from '../../../lib/models/Wallet';
 import Position from '../../../lib/models/Position';
 import Trade from '../../../lib/models/Trade';
 import Log from '../../../lib/models/Log';
-import { fetchLiveTickers } from '../../../../backend/src/services/marketData';
+import exchangeService from '../../../../backend/src/services/exchangeService';
+import { fetchLiveTickers, fetchKlines } from '../../../../backend/src/services/marketData';
 
 export async function GET() {
   try {
@@ -72,6 +73,57 @@ export async function GET() {
     const totalPnL = totalEquity - wallet.initialDepositUSD;
     const totalPnLPercent = (totalPnL / wallet.initialDepositUSD) * 100;
 
+    let mappedTrades = tradeHistory.map(t => ({
+      id: t.tradeId,
+      symbol: t.symbol,
+      type: t.type,
+      price: t.price,
+      amount: t.amount,
+      pnlUSD: t.pnlUSD,
+      pnlPercent: t.pnlPercent,
+      reason: t.reason,
+      timestamp: t.timestamp
+    }));
+
+    // Auto-fetch real Binance executed orders if DB trades empty
+    if (mappedTrades.length === 0) {
+      try {
+        const apiKey = botConfig.exchangeConfig?.apiKey || process.env.BINANCE_API_KEY;
+        const apiSecret = botConfig.exchangeConfig?.apiSecret || process.env.BINANCE_API_SECRET;
+        if (apiKey && apiSecret) {
+          exchangeService.setCredentials({
+            exchange: 'BINANCE',
+            marketType: botConfig.exchangeConfig?.marketType || 'SPOT',
+            apiKey,
+            apiSecret,
+            isTestnet: botConfig.exchangeConfig?.isTestnet !== false
+          });
+          const endpoint = botConfig.exchangeConfig?.marketType === 'FUTURES' ? '/fapi/v1/allOrders' : '/api/v3/allOrders';
+          const binanceOrders = await exchangeService.signedRequest('GET', endpoint, { symbol: 'BTCUSDT', limit: 10 });
+          if (Array.isArray(binanceOrders) && binanceOrders.length > 0) {
+            mappedTrades = binanceOrders.slice().reverse().map(o => {
+              const executedQty = parseFloat(o.executedQty || o.origQty || 0);
+              const cummulativeQuote = parseFloat(o.cummulativeQuoteQty || o.cumQuote || 0);
+              const computedPrice = parseFloat(o.price) > 0 ? parseFloat(o.price) : (executedQty > 0 ? cummulativeQuote / executedQty : 63070);
+              return {
+                id: `BIN-${o.orderId || o.clientOrderId}`,
+                symbol: 'BTC/USDT',
+                type: o.side,
+                price: parseFloat(computedPrice.toFixed(2)),
+                amount: parseFloat(executedQty.toFixed(5)),
+                pnlUSD: 0,
+                pnlPercent: 0,
+                reason: `BINANCE_${o.status}`,
+                timestamp: o.time || o.updateTime || Date.now()
+              };
+            });
+          }
+        }
+      } catch (err) {
+        console.error('[Status Route] Binance orders fetch fallback error:', err.message);
+      }
+    }
+
     const data = {
       status: botConfig.status,
       symbol: botConfig.symbol,
@@ -89,17 +141,7 @@ export async function GET() {
         positions: mappedPositions
       },
       positions: mappedPositions,
-      tradeHistory: tradeHistory.map(t => ({
-        id: t.tradeId,
-        symbol: t.symbol,
-        type: t.type,
-        price: t.price,
-        amount: t.amount,
-        pnlUSD: t.pnlUSD,
-        pnlPercent: t.pnlPercent,
-        reason: t.reason,
-        timestamp: t.timestamp
-      })),
+      tradeHistory: mappedTrades,
       logs: logs.map(l => ({
         tag: l.tag,
         message: l.message,
