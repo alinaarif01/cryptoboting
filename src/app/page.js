@@ -44,26 +44,73 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Fetch Live Tickers
+  // Fetch Live Tickers with direct Binance fallback for 100% navbar price rendering
   const fetchTickers = useCallback(async () => {
     try {
       const res = await fetch('/api/tickers');
       const json = await res.json();
-      if (json.success && json.data) {
+      if (json.success && json.data && Object.keys(json.data).length > 0) {
         setTickers(json.data);
+        return;
+      }
+    } catch {
+      // fallback
+    }
+
+    try {
+      const symbolsParam = encodeURIComponent(JSON.stringify(['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT']));
+      const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${symbolsParam}`);
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        const map = {};
+        data.forEach(item => {
+          const entry = {
+            symbol: item.symbol.replace('USDT', '/USDT'),
+            rawSymbol: item.symbol,
+            price: parseFloat(item.lastPrice),
+            change24h: parseFloat(item.priceChangePercent),
+            high24h: parseFloat(item.highPrice),
+            low24h: parseFloat(item.lowPrice),
+            volume: parseFloat(item.volume)
+          };
+          map[item.symbol] = entry;
+          map[item.symbol.replace('USDT', '/USDT')] = entry;
+        });
+        setTickers(map);
       }
     } catch {
       // ignore
     }
   }, []);
 
-  // Fetch Candlestick OHLCV Data
+  // Fetch Candlestick OHLCV Data with direct Binance fallback for instant chart rendering
   const fetchKlines = useCallback(async (symbol, tf) => {
+    const formattedSymbol = symbol.replace('/', '').toUpperCase();
     try {
-      const res = await fetch(`/api/klines?symbol=${symbol}&interval=${tf}&limit=100`);
+      const res = await fetch(`/api/klines?symbol=${formattedSymbol}&interval=${tf}&limit=100`);
       const json = await res.json();
-      if (json.success && json.data) {
+      if (json.success && Array.isArray(json.data) && json.data.length > 0) {
         setKlinesData(json.data);
+        return;
+      }
+    } catch {
+      // fallback
+    }
+
+    try {
+      const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${formattedSymbol}&interval=${tf}&limit=100`);
+      const rawData = await res.json();
+      if (Array.isArray(rawData)) {
+        const parsed = rawData.map(c => ({
+          timestamp: c[0],
+          time: new Date(c[0]).toISOString(),
+          open: parseFloat(c[1]),
+          high: parseFloat(c[2]),
+          low: parseFloat(c[3]),
+          close: parseFloat(c[4]),
+          volume: parseFloat(c[5])
+        }));
+        setKlinesData(parsed);
       }
     } catch {
       // ignore
