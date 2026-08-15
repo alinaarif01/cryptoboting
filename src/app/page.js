@@ -278,6 +278,9 @@ export default function DashboardPage() {
         paperWallet={botState.paperWallet}
         activeStrategy={botState.activeStrategy}
         openPositionsCount={botState.positions?.length || 0}
+        botStatus={botState.status}
+        onToggleMasterBot={handleToggleMasterBot}
+        onEmergencyStop={handleEmergencyStop}
       />
 
       <nav className="main-tabs">

@@ -71,12 +71,15 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .logo-icon {
@@ -117,11 +120,14 @@ body {
 .ticker-tape {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
   background: rgba(255, 255, 255, 0.03);
-  padding: 8px 16px;
+  padding: 6px 14px;
   border-radius: 30px;
   border: 1px solid var(--border-color);
+  overflow-x: auto;
+  max-width: 520px;
+  scrollbar-width: none;
 }
 
 .ticker-item {
