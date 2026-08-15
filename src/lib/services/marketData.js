@@ -1,9 +1,7 @@
-const https = require('https');
+// Live Binance Market Data Service for Next.js
 
-// Ticker cache holding real live Binance data
 let tickerCache = {};
 
-// Helper for HTTPS requests using modern native fetch
 async function fetchJson(url) {
   try {
     const res = await fetch(url, {
@@ -20,12 +18,11 @@ async function fetchJson(url) {
   }
 }
 
-// Fetch 100% real live tickers directly from Binance public API (Targeted symbols for ultra-fast response)
-async function fetchLiveTickers() {
+export async function fetchLiveTickers() {
   try {
     const symbolsParam = encodeURIComponent(JSON.stringify(['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT']));
     const data = await fetchJson(`https://api.binance.com/api/v3/ticker/24hr?symbols=${symbolsParam}`);
-    
+
     if (Array.isArray(data)) {
       data.forEach(item => {
         const entry = {
@@ -48,8 +45,7 @@ async function fetchLiveTickers() {
   }
 }
 
-// Fetch 100% real OHLCV Candlestick data directly from Binance public API
-async function fetchKlines(symbol = 'BTCUSDT', interval = '1h', limit = 100) {
+export async function fetchKlines(symbol = 'BTCUSDT', interval = '1h', limit = 100) {
   try {
     const formattedSymbol = symbol.replace('/', '').toUpperCase();
     const url = `https://api.binance.com/api/v3/klines?symbol=${formattedSymbol}&interval=${interval}&limit=${limit}`;
@@ -72,8 +68,6 @@ async function fetchKlines(symbol = 'BTCUSDT', interval = '1h', limit = 100) {
   }
 }
 
-module.exports = {
-  fetchLiveTickers,
-  fetchKlines,
-  getTickerCache: () => tickerCache
-};
+export function getTickerCache() {
+  return tickerCache;
+}

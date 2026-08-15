@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { dbStore } from '../../../../lib/store';
 import { getBotEngine } from '../../../../lib/botEngine';
-import { fetchLiveTickers } from '../../../../../backend/src/services/marketData';
+import { fetchLiveTickers } from '../../../../lib/services/marketData';
 
 export async function POST() {
   try {

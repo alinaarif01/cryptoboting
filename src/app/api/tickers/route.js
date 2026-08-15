@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { fetchLiveTickers } from '../../../../backend/src/services/marketData';
+import { fetchLiveTickers } from '../../../lib/services/marketData';
 
 export async function GET() {
   try {

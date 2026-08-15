@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { dbStore } from '../../../lib/store';
-import { fetchLiveTickers, fetchKlines } from '../../../../backend/src/services/marketData';
+import { fetchLiveTickers, fetchKlines } from '../../../lib/services/marketData';
 import { evaluateAlpha85Strategy, evaluateRSIStrategy, evaluateGridStrategy, evaluateDCAStrategy } from '../../../lib/strategies';
 import { evaluateCycle } from '../../../lib/botEngine';
 

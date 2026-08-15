@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { fetchKlines } from '../../../../backend/src/services/marketData';
+import { fetchKlines } from '../../../lib/services/marketData';
 
 export async function GET(req) {
   try {

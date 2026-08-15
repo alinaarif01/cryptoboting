@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { dbStore } from '../../../../lib/store';
-import exchangeService from '../../../../../backend/src/services/exchangeService';
-import { fetchLiveTickers } from '../../../../../backend/src/services/marketData';
+import exchangeService from '../../../../lib/services/exchangeService';
+import { fetchLiveTickers } from '../../../../lib/services/marketData';
 
 export async function POST(req) {
   try {

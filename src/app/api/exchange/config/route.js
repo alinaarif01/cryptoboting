@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { dbStore } from '../../../../lib/store';
-import exchangeService from '../../../../../backend/src/services/exchangeService';
+import exchangeService from '../../../../lib/services/exchangeService';
 
 export async function POST(req) {
   try {

@@ -1,6 +1,6 @@
 import { dbStore } from './store';
-import { fetchKlines, fetchLiveTickers } from '../../backend/src/services/marketData';
-import exchangeService from '../../backend/src/services/exchangeService';
+import { fetchKlines, fetchLiveTickers } from './services/marketData';
+import exchangeService from './services/exchangeService';
 import { evaluateAlpha85Strategy, evaluateRSIStrategy, evaluateGridStrategy, evaluateDCAStrategy } from './strategies';
 
 let botTimer = null;

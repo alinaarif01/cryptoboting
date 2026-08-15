@@ -1,8 +1,0 @@
-{
-  "name": "crypto-trading-bot-frontend",
-  "version": "1.0.0",
-  "description": "Real-time Crypto Trading Bot Web Dashboard",
-  "scripts": {
-    "start": "npx serve -l 3000 ."
-  }
-}
