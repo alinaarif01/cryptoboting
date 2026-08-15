@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crypto Trading Bot Platform | Real-time Dashboard</title>
+  <meta name="description" content="Advanced algorithmic crypto trading bot with paper trading simulation, technical indicators, strategy optimization, and live backtesting workbench.">
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- TOP NAVIGATION & LIVE TICKERS TAPE -->
+    <header class="top-header">
+      <div class="brand">
+        <div class="logo-icon">
+          <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <div class="brand-text">
+          <h1>CYPHER<span>BOT</span></h1>
+          <span class="version-tag">PRO v2.4</span>
+        </div>
+      </div>
+
+      <!-- Ticker Tapes -->
+      <div class="ticker-tape" id="tickerTape">
+        <div class="ticker-item" data-pair="BTCUSDT">
+          <span class="pair">BTC/USDT</span>
+          <span class="price" id="price-BTCUSDT">$0.00</span>
+          <span class="change neutral" id="change-BTCUSDT">0.00%</span>
+        </div>
+        <div class="ticker-item" data-pair="ETHUSDT">
+          <span class="pair">ETH/USDT</span>
+          <span class="price" id="price-ETHUSDT">$0.00</span>
+          <span class="change neutral" id="change-ETHUSDT">0.00%</span>
+        </div>
+        <div class="ticker-item" data-pair="SOLUSDT">
+          <span class="pair">SOL/USDT</span>
+          <span class="price" id="price-SOLUSDT">$0.00</span>
+          <span class="change neutral" id="change-SOLUSDT">0.00%</span>
+        </div>
+        <div class="ticker-item" data-pair="BNBUSDT">
+          <span class="pair">BNB/USDT</span>
+          <span class="price" id="price-BNBUSDT">$0.00</span>
+          <span class="change neutral" id="change-BNBUSDT">0.00%</span>
+        </div>
+      </div>
+
+      <!-- Connection & Master Bot Switch -->
+      <div class="header-actions">
+        <div class="status-indicator online" id="wsStatus">
+          <span class="dot"></span>
+          <span class="status-text" id="wsStatusText">Connected</span>
+        </div>
+        
+        <div class="master-toggle">
+          <button class="btn btn-start" id="masterBotBtn" onclick="app.toggleMasterBot()">
+            <i class="fa-solid fa-play"></i> START BOT
+          </button>
+          <button class="btn btn-danger" id="panicBtn" onclick="app.emergencyStop()" style="background: var(--accent-red); margin-left: 8px;" title="Emergency Panic Kill-Switch: Instantly Close All Positions & Stop Bot">
+            <i class="fa-solid fa-triangle-exclamation"></i> EMERGENCY STOP
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- METRICS HIGHLIGHT BAR -->
+    <section class="metrics-bar">
+      <div class="metric-card">
+        <div class="metric-icon usd"><i class="fa-solid fa-wallet"></i></div>
+        <div class="metric-info">
+          <span class="label">Total Equity</span>
+          <h3 class="value" id="valTotalEquity">$10,000.00</h3>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon cash"><i class="fa-solid fa-coins"></i></div>
+        <div class="metric-info">
+          <span class="label">Paper Balance</span>
+          <h3 class="value" id="valPaperBalance">$10,000.00</h3>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon pnl"><i class="fa-solid fa-chart-pie"></i></div>
+        <div class="metric-info">
+          <span class="label">Total PnL ($)</span>
+          <h3 class="value neutral" id="valTotalPnL">$0.00 (0.00%)</h3>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon strategy"><i class="fa-solid fa-robot"></i></div>
+        <div class="metric-info">
+          <span class="label">Active Strategy</span>
+          <h3 class="value highlight" id="valActiveStrategy">RSI + EMA</h3>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon positions"><i class="fa-solid fa-layer-group"></i></div>
+        <div class="metric-info">
+          <span class="label">Open Positions</span>
+          <h3 class="value" id="valOpenPositions">0</h3>
+        </div>
+      </div>
+    </section>
+
+    <!-- NAVIGATION TABS -->
+    <nav class="main-tabs">
+      <button class="tab-btn active" data-tab="tab-chart">
+        <i class="fa-solid fa-chart-candlestick"></i> Live Charts & Market
+      </button>
+      <button class="tab-btn" data-tab="tab-strategy">
+        <i class="fa-solid fa-sliders"></i> Strategy Configuration
+      </button>
+      <button class="tab-btn" data-tab="tab-exchange">
+        <i class="fa-solid fa-key"></i> Exchange & Live Trading
+      </button>
+      <button class="tab-btn" data-tab="tab-backtest">
+        <i class="fa-solid fa-vial-circle-check"></i> Backtesting Engine
+      </button>
+      <button class="tab-btn" data-tab="tab-trades">
+        <i class="fa-solid fa-receipt"></i> Positions & Trade Audit
+      </button>
+      <button class="tab-btn" data-tab="tab-logs">
+        <i class="fa-solid fa-terminal"></i> Bot Logs
+      </button>
+    </nav>
+
+    <!-- MAIN CONTENT CONTAINERS -->
+    <main class="content-area">
+
+      <!-- TAB 1: LIVE CHARTS & MARKET DATA -->
+      <div class="tab-content active" id="tab-chart">
+        <div class="chart-dashboard-grid">
+          
+          <!-- Main Chart Card -->
+          <div class="panel chart-panel">
+            <div class="panel-header">
+              <div class="pair-selector-group">
+                <label><i class="fa-solid fa-coins"></i> Pair:</label>
+                <select id="chartPairSelect" onchange="app.changePair(this.value)">
+                  <option value="BTCUSDT">BTC / USDT</option>
+                  <option value="ETHUSDT">ETH / USDT</option>
+                  <option value="SOLUSDT">SOL / USDT</option>
+                  <option value="BNBUSDT">BNB / USDT</option>
+                </select>
+
+                <div class="timeframe-group">
+                  <button class="tf-btn active" data-tf="15m">15m</button>
+                  <button class="tf-btn" data-tf="1h">1h</button>
+                  <button class="tf-btn" data-tf="4h">4h</button>
+                  <button class="tf-btn" data-tf="1d">1d</button>
+                </div>
+              </div>
+
+              <div class="chart-indicators-readout">
+                <span class="indicator-badge">RSI: <strong id="readoutRsi">--</strong></span>
+                <span class="indicator-badge">EMA 50: <strong id="readoutEma">--</strong></span>
+                <span class="indicator-badge signal" id="readoutSignal">Signal: HOLD</span>
+              </div>
+            </div>
+
+            <div class="chart-container">
+              <canvas id="mainCandleChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Side Panel: Live Order Execution Signal Feed -->
+          <div class="panel side-feed-panel">
+            <div class="panel-header">
+              <h3><i class="fa-solid fa-bolt"></i> Live Bot Signals</h3>
+              <span class="pulse-badge">LIVE</span>
+            </div>
+            
+            <div class="signal-card" id="currentSignalCard">
+              <div class="signal-type hold" id="sigType">HOLD</div>
+              <div class="signal-details">
+                <div class="row"><span>Symbol:</span> <strong id="sigSymbol">BTC/USDT</strong></div>
+                <div class="row"><span>Last Price:</span> <strong id="sigPrice">$0.00</strong></div>
+                <div class="row"><span>Reason:</span> <small id="sigReason">Waiting for evaluation loop...</small></div>
+              </div>
+            </div>
+
+            <div class="action-buttons-group">
+              <button class="btn btn-outline" onclick="app.resetWallet()">
+                <i class="fa-solid fa-rotate-left"></i> Reset Paper Wallet ($10k)
+              </button>
+            </div>
+
+            <!-- Quick Active Positions Preview -->
+            <div class="positions-preview">
+              <h4>Active Positions (<span id="quickPosCount">0</span>)</h4>
+              <div class="positions-list" id="quickPositionsList">
+                <div class="empty-state">No open positions</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- TAB 2: STRATEGY CONFIGURATION -->
+      <div class="tab-content" id="tab-strategy">
+        <div class="strategy-grid">
+          
+          <!-- Strategy Selector Card -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3><i class="fa-solid fa-gears"></i> Trading Strategy Selection</h3>
+            </div>
+            <div class="strategy-cards-container">
+              
+              <div class="strategy-option-card active" data-strategy="RSI" onclick="app.selectStrategy('RSI')">
+                <div class="strat-header">
+                  <i class="fa-solid fa-chart-line"></i>
+                  <h4>RSI + EMA Momentum</h4>
+                </div>
+                <p>Calculates Relative Strength Index over candles. Triggers BUY when oversold and SELL when overbought, filtered by EMA 50 trend.</p>
+                <div class="strat-tags"><span>Indicators</span><span>Momentum</span><span>Scalping</span></div>
+              </div>
+
+              <div class="strategy-option-card" data-strategy="GRID" onclick="app.selectStrategy('GRID')">
+                <div class="strat-header">
+                  <i class="fa-solid fa-grip"></i>
+                  <h4>Grid Trading Bot</h4>
+                </div>
+                <p>Generates lower & upper price boundaries split into levels. Automates buy-low and sell-high orders across market range fluctuations.</p>
+                <div class="strat-tags"><span>Range</span><span>Automated Grid</span><span>Market Making</span></div>
+              </div>
+
+              <div class="strategy-option-card" data-strategy="DCA" onclick="app.selectStrategy('DCA')">
+                <div class="strat-header">
+                  <i class="fa-solid fa-clock-rotate-left"></i>
+                  <h4>Dollar-Cost Averaging (DCA)</h4>
+                </div>
+                <p>Executes recurring automated orders with safety buy-in orders on market pullbacks to average down entry costs.</p>
+                <div class="strat-tags"><span>Long-term</span><span>Safety Orders</span><span>Risk Control</span></div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Strategy Parameter Settings Form -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3><i class="fa-solid fa-sliders"></i> Risk & Parameter Settings</h3>
+            </div>
+
+            <form id="strategyForm" onsubmit="app.saveStrategyConfig(event)">
+              
+              <!-- RSI Parameters -->
+              <div class="param-section" id="paramSectionRSI">
+                <h4><i class="fa-solid fa-chart-area"></i> RSI Parameters</h4>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>RSI Oversold Level (BUY)</label>
+                    <input type="number" id="inputRsiOversold" value="30" min="10" max="45">
+                  </div>
+                  <div class="form-group">
+                    <label>RSI Overbought Level (SELL)</label>
+                    <input type="number" id="inputRsiOverbought" value="70" min="55" max="90">
+                  </div>
+                  <div class="form-group">
+                    <label>RSI Period (Candles)</label>
+                    <input type="number" id="inputRsiPeriod" value="14" min="5" max="50">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Grid Parameters -->
+              <div class="param-section" id="paramSectionGRID" style="display: none;">
+                <h4><i class="fa-solid fa-grip"></i> Grid Parameters</h4>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Grid Lower Limit ($)</label>
+                    <input type="number" id="inputGridLower" value="60000" step="100">
+                  </div>
+                  <div class="form-group">
+                    <label>Grid Upper Limit ($)</label>
+                    <input type="number" id="inputGridUpper" value="70000" step="100">
+                  </div>
+                  <div class="form-group">
+                    <label>Grid Levels Count</label>
+                    <input type="number" id="inputGridLevels" value="5" min="2" max="20">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Universal Risk Controls -->
+              <div class="param-section">
+                <h4><i class="fa-solid fa-shield-halved"></i> Universal Risk Controls</h4>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Stop Loss (%)</label>
+                    <input type="number" id="inputStopLoss" value="3.0" step="0.1" min="0.5" max="20">
+                  </div>
+                  <div class="form-group">
+                    <label>Take Profit (%)</label>
+                    <input type="number" id="inputTakeProfit" value="6.0" step="0.1" min="1" max="50">
+                  </div>
+                  <div class="form-group">
+                    <label>Trade Allocation ($)</label>
+                    <input type="number" id="inputTradeAlloc" value="1000" step="100" min="100">
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                  <i class="fa-solid fa-floppy-disk"></i> Apply & Update Bot Parameters
+                </button>
+              </div>
+            </form>
+
+          </div>
+
+        </div>
+      </div>
+
+      <!-- TAB 3: BACKTESTING WORKBENCH -->
+      <div class="tab-content" id="tab-backtest">
+        <div class="backtest-grid">
+          
+          <!-- Backtest Controls Panel -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3><i class="fa-solid fa-flask"></i> Run Historical Backtest</h3>
+            </div>
+
+            <form id="backtestForm" onsubmit="app.runBacktest(event)">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Crypto Pair</label>
+                  <select id="btSymbol">
+                    <option value="BTCUSDT">BTC / USDT</option>
+                    <option value="ETHUSDT">ETH / USDT</option>
+                    <option value="SOLUSDT">SOL / USDT</option>
+                    <option value="BNBUSDT">BNB / USDT</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>Candle Interval</label>
+                  <select id="btInterval">
+                    <option value="15m">15 Minutes</option>
+                    <option value="1h" selected>1 Hour</option>
+                    <option value="4h">4 Hours</option>
+                    <option value="1d">1 Day</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>Historical Candles Count</label>
+                  <input type="number" id="btLimit" value="300" min="50" max="1000">
+                </div>
+
+                <div class="form-group">
+                  <label>Strategy Algorithm</label>
+                  <select id="btStrategy">
+                    <option value="RSI">RSI + EMA Crossover</option>
+                    <option value="GRID">Grid Trading Oscillations</option>
+                    <option value="SMA_CROSS">SMA Moving Average Cross</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>Initial Capital ($)</label>
+                  <input type="number" id="btCapital" value="10000">
+                </div>
+
+                <div class="form-group">
+                  <label>Trade Size ($)</label>
+                  <input type="number" id="btTradeSize" value="1000">
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn-accent" id="btnRunBt">
+                  <i class="fa-solid fa-play"></i> Launch Backtest Engine
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Backtest Results Report -->
+          <div class="panel" id="btReportPanel">
+            <div class="panel-header">
+              <h3><i class="fa-solid fa-chart-column"></i> Performance Metrics</h3>
+              <span class="badge" id="btBadge">Ready to Test</span>
+            </div>
+
+            <div class="bt-summary-cards">
+              <div class="bt-card">
+                <span class="title">Net Profit / ROI</span>
+                <h3 id="btRoi">$0.00 (0.00%)</h3>
+              </div>
+              <div class="bt-card">
+                <span class="title">Win Rate</span>
+                <h3 id="btWinRate">0.00%</h3>
+              </div>
+              <div class="bt-card">
+                <span class="title">Profit Factor</span>
+                <h3 id="btProfitFactor">0.00</h3>
+              </div>
+              <div class="bt-card">
+                <span class="title">Max Drawdown</span>
+                <h3 class="negative" id="btMaxDrawdown">0.00%</h3>
+              </div>
+            </div>
+
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Trade ID</th>
+                    <th>Type</th>
+                    <th>Price</th>
+                    <th>Executed Time</th>
+                    <th>PnL ($)</th>
+                    <th>PnL (%)</th>
+                  </tr>
+                </thead>
+                <tbody id="btTradesTableBody">
+                  <tr><td colspan="6" class="text-center">Run a backtest to view execution logs</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- TAB 4: POSITIONS & TRADE AUDIT -->
+      <div class="tab-content" id="tab-trades">
+        <div class="trades-layout">
+          
+          <!-- Open Positions Section -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3><i class="fa-solid fa-box-archive"></i> Active Open Positions</h3>
+            </div>
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Position ID</th>
+                    <th>Symbol</th>
+                    <th>Entry Price</th>
+                    <th>Current Price</th>
+                    <th>Amount</th>
+                    <th>Cost USD</th>
+                    <th>Unrealized PnL</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="openPositionsTableBody">
+                  <tr><td colspan="8" class="text-center">No active open positions</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Trade History Audit Trail -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3><i class="fa-solid fa-clock-history"></i> Completed Trade Audit History</h3>
+            </div>
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Trade ID</th>
+                    <th>Symbol</th>
+                    <th>Type</th>
+                    <th>Price</th>
+                    <th>Total Value</th>
+                    <th>Fee</th>
+                    <th>PnL</th>
+                    <th>Time</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody id="tradeHistoryTableBody">
+                  <tr><td colspan="9" class="text-center">No trades executed yet</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- TAB: BINANCE & EXCHANGE API CONFIGURATION -->
+      <div class="tab-content" id="tab-exchange">
+        <div class="exchange-config-grid">
+          
+          <!-- API Keys Form Panel -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3><i class="fa-brands fa-bitcoin"></i> Binance Trading Platform API Settings</h3>
+              <span class="badge badge-info" id="exchangeConnBadge">DISCONNECTED</span>
+            </div>
+
+            <form id="exchangeForm" onsubmit="app.saveExchangeConfig(event)">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label><i class="fa-solid fa-building-columns"></i> Exchange Platform:</label>
+                  <select id="exName" class="form-control">
+                    <option value="BINANCE">Binance Spot</option>
+                    <option value="BYBIT">Bybit Spot</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label><i class="fa-solid fa-network-wired"></i> Environment Network:</label>
+                  <select id="exNetwork" class="form-control">
+                    <option value="testnet" selected>Binance Testnet / Sandbox (Mock Trading)</option>
+                    <option value="mainnet">Binance Mainnet (Live Real Money Trading)</option>
+                  </select>
+                </div>
+
+                <div class="form-group full-width">
+                  <label><i class="fa-solid fa-key"></i> Binance API Key:</label>
+                  <input type="text" id="exApiKey" class="form-control" placeholder="Paste your Binance API Key here...">
+                </div>
+
+                <div class="form-group full-width">
+                  <label><i class="fa-solid fa-lock"></i> Binance Secret Key:</label>
+                  <input type="password" id="exApiSecret" class="form-control" placeholder="Paste your Binance Secret Key here...">
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="btnTestConn">
+                  <i class="fa-solid fa-plug"></i> Test Connection & Save API Keys
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Execution Mode Toggle & Status Panel -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3><i class="fa-solid fa-toggle-on"></i> Bot Execution Mode</h3>
+            </div>
+
+            <div class="mode-selector-card">
+              <div class="mode-option active-paper" id="modeCardPaper" onclick="app.setExecutionMode('PAPER')">
+                <div class="mode-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <div class="mode-info">
+                  <h4>Paper Trading Mode (Simulated)</h4>
+                  <p>Safely tests strategies using internal $10,000 USD virtual wallet without risking real funds.</p>
+                </div>
+                <span class="radio-indicator"><i class="fa-solid fa-circle-check"></i></span>
+              </div>
+
+              <div class="mode-option" id="modeCardLive" onclick="app.setExecutionMode('LIVE')">
+                <div class="mode-icon live-icon"><i class="fa-solid fa-bolt"></i></div>
+                <div class="mode-info">
+                  <h4>Live Exchange Mode (Real / Testnet Execution)</h4>
+                  <p>Dispatches real Market & Limit Orders directly to Binance API when signals trigger.</p>
+                </div>
+                <span class="radio-indicator"><i class="fa-regular fa-circle"></i></span>
+              </div>
+            </div>
+
+            <div class="live-balance-summary" id="liveBalanceCard">
+              <h4><i class="fa-solid fa-wallet"></i> Binance Account Balances</h4>
+              <div class="balance-tokens">
+                <div class="token-box">
+                  <span class="t-name">USDT Free:</span>
+                  <span class="t-val" id="exUsdtBal">$0.00</span>
+                </div>
+                <div class="token-box">
+                  <span class="t-name">BTC Free:</span>
+                  <span class="t-val" id="exBtcBal">0.00000 BTC</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- TAB 5: SYSTEM LOGS & CONSOLE -->
+      <div class="tab-content" id="tab-logs">
+        <div class="panel">
+          <div class="panel-header">
+            <h3><i class="fa-solid fa-code"></i> Live Execution Terminal Logs</h3>
+            <div class="log-actions">
+              <button class="btn btn-sm btn-outline" onclick="app.clearLogs()">
+                <i class="fa-solid fa-trash"></i> Clear Console
+              </button>
+            </div>
+          </div>
+
+          <div class="terminal-window" id="terminalConsole">
+            <div class="log-entry info">
+              <span class="time">[00:00:00]</span>
+              <span class="tag">SYSTEM</span>
+              <span class="msg">Dashboard connected to Bot Backend engine...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/chartManager.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
