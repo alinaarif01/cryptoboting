@@ -1,14 +1,9 @@
 const https = require('https');
 
-// Cache live tickers and candles
-let tickerCache = {
-  'BTCUSDT': { symbol: 'BTC/USDT', price: 65420.50, change24h: 2.45, high24h: 66100.00, low24h: 63800.00, volume: 18420.5 },
-  'ETHUSDT': { symbol: 'ETH/USDT', price: 3480.20, change24h: -0.85, high24h: 3550.00, low24h: 3420.00, volume: 45210.1 },
-  'SOLUSDT': { symbol: 'SOL/USDT', price: 145.75, change24h: 5.12, high24h: 148.50, low24h: 137.20, volume: 89400.0 },
-  'BNBUSDT': { symbol: 'BNB/USDT', price: 575.40, change24h: 1.10, high24h: 582.00, low24h: 568.00, volume: 12100.0 }
-};
+// Ticker cache holding real live Binance data
+let tickerCache = {};
 
-// Helper for HTTP requests
+// Helper for HTTPS requests
 function fetchJson(url) {
   return new Promise((resolve, reject) => {
     https.get(url, { headers: { 'User-Agent': 'CryptoBot/1.0' } }, (res) => {
@@ -29,7 +24,7 @@ function fetchJson(url) {
   });
 }
 
-// Fetch live tickers from Binance public API
+// Fetch 100% real live tickers directly from Binance public API
 async function fetchLiveTickers() {
   try {
     const data = await fetchJson('https://api.binance.com/api/v3/ticker/24hr');
@@ -50,16 +45,12 @@ async function fetchLiveTickers() {
     });
     return tickerCache;
   } catch (err) {
-    // If Binance API is blocked or offline, add small jitter to simulation cache
-    for (const key in tickerCache) {
-      const jitter = (Math.random() - 0.49) * (tickerCache[key].price * 0.002);
-      tickerCache[key].price = parseFloat((tickerCache[key].price + jitter).toFixed(2));
-    }
+    console.error('[MarketData Error] Live Binance tickers API failed:', err.message);
     return tickerCache;
   }
 }
 
-// Fetch OHLCV Candlestick data for charting & backtesting
+// Fetch 100% real OHLCV Candlestick data directly from Binance public API
 async function fetchKlines(symbol = 'BTCUSDT', interval = '1h', limit = 100) {
   try {
     const formattedSymbol = symbol.replace('/', '').toUpperCase();
@@ -76,40 +67,9 @@ async function fetchKlines(symbol = 'BTCUSDT', interval = '1h', limit = 100) {
       volume: parseFloat(c[5])
     }));
   } catch (err) {
-    console.warn(`[MarketData] Binance API failed for ${symbol}, using generated candles fallback:`, err.message);
-    return generateFallbackCandles(symbol, limit);
+    console.error(`[MarketData Error] Live Binance klines API failed for ${symbol}:`, err.message);
+    return [];
   }
-}
-
-// Fallback candle generator for robust offline execution & simulation
-function generateFallbackCandles(symbol, count = 100) {
-  let basePrice = symbol.includes('BTC') ? 65000 : symbol.includes('ETH') ? 3400 : 140;
-  const now = Date.now();
-  const hourMs = 3600 * 1000;
-  const candles = [];
-
-  for (let i = count; i >= 0; i--) {
-    const timestamp = now - (i * hourMs);
-    const change = (Math.random() - 0.48) * (basePrice * 0.015);
-    const open = basePrice;
-    const close = basePrice + change;
-    const high = Math.max(open, close) + Math.random() * (basePrice * 0.008);
-    const low = Math.min(open, close) - Math.random() * (basePrice * 0.008);
-    const volume = Math.random() * 500 + 100;
-
-    candles.push({
-      timestamp,
-      time: new Date(timestamp).toISOString(),
-      open: parseFloat(open.toFixed(2)),
-      high: parseFloat(high.toFixed(2)),
-      low: parseFloat(low.toFixed(2)),
-      close: parseFloat(close.toFixed(2)),
-      volume: parseFloat(volume.toFixed(2))
-    });
-
-    basePrice = close;
-  }
-  return candles;
 }
 
 module.exports = {
