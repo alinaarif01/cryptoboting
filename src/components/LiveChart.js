@@ -90,7 +90,7 @@ export default function LiveChart({
         scales: {
           x: { grid: { color: 'rgba(255, 255, 255, 0.04)' }, ticks: { color: '#64748b', font: { size: 10 } } },
           y: { position: 'right', grid: { color: 'rgba(255, 255, 255, 0.04)' }, ticks: { color: '#94a3b8', font: { size: 11 } } },
-          yVolume: { position: 'left', display: false, max: Math.max(...volumes, 1) * 4 }
+          yVolume: { position: 'left', display: false, max: (volumes && volumes.length > 0 ? Math.max(...volumes) : 1) * 4 }
         }
       }
     });
