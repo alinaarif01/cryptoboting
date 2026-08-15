@@ -56,6 +56,16 @@ class AppController {
           this.updateConnectionStatus(true);
         }
       });
+
+      api.getTickers().then(res => {
+        if (res && res.success && res.data) {
+          this.renderTickers(res.data);
+          const currentTicker = res.data[this.currentPair];
+          if (currentTicker && currentTicker.price) {
+            chartManager.updateLatestPrice(currentTicker.price);
+          }
+        }
+      });
     };
 
     // Initial status fetch
@@ -64,6 +74,7 @@ class AppController {
     // Polling fallback every 4 seconds (essential for Vercel Serverless)
     setInterval(fetchStatus, 4000);
   }
+
 
 
   updateConnectionStatus(isConnected) {
