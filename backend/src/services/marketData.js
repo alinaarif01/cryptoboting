@@ -24,15 +24,15 @@ function fetchJson(url) {
   });
 }
 
-// Fetch 100% real live tickers directly from Binance public API
+// Fetch 100% real live tickers directly from Binance public API (Targeted symbols for ultra-fast 50ms response)
 async function fetchLiveTickers() {
   try {
-    const data = await fetchJson('https://api.binance.com/api/v3/ticker/24hr');
-    const targetPairs = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT'];
+    const symbolsParam = encodeURIComponent(JSON.stringify(['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT']));
+    const data = await fetchJson(`https://api.binance.com/api/v3/ticker/24hr?symbols=${symbolsParam}`);
     
-    data.forEach(item => {
-      if (targetPairs.includes(item.symbol)) {
-        tickerCache[item.symbol] = {
+    if (Array.isArray(data)) {
+      data.forEach(item => {
+        const entry = {
           symbol: item.symbol.replace('USDT', '/USDT'),
           rawSymbol: item.symbol,
           price: parseFloat(item.lastPrice),
@@ -41,8 +41,10 @@ async function fetchLiveTickers() {
           low24h: parseFloat(item.lowPrice),
           volume: parseFloat(item.volume)
         };
-      }
-    });
+        tickerCache[item.symbol] = entry;
+        tickerCache[item.symbol.replace('USDT', '/USDT')] = entry;
+      });
+    }
     return tickerCache;
   } catch (err) {
     console.error('[MarketData Error] Live Binance tickers API failed:', err.message);

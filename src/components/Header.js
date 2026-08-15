@@ -16,8 +16,9 @@ export default function Header({ tickers, botStatus, isConnected, onToggleMaster
       {/* Ticker Tape */}
       <div className="ticker-tape" id="tickerTape">
         {['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT'].map((pairKey) => {
-          const item = tickers[pairKey] || {
-            symbol: pairKey.replace('USDT', '/USDT'),
+          const slashKey = pairKey.replace('USDT', '/USDT');
+          const item = (tickers && (tickers[pairKey] || tickers[slashKey])) || {
+            symbol: slashKey,
             price: 0,
             change24h: 0
           };

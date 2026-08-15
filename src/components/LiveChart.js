@@ -121,7 +121,30 @@ export default function LiveChart({
     return ema;
   }
 
-  const signal = evalResult?.signal || 'HOLD';
+  const latestPrice = evalResult?.price || (klinesData && klinesData.length > 0 ? klinesData[klinesData.length - 1].close : null);
+  const emaValues = klinesData && klinesData.length >= 20 ? calculateEMA(klinesData.map(c => c.close), 20) : [];
+  const latestEma = evalResult?.ema50 || (emaValues.length > 0 ? emaValues[emaValues.length - 1] : null);
+
+  let latestRsi = evalResult?.rsi;
+  if (!latestRsi && klinesData && klinesData.length >= 15) {
+    const closes = klinesData.map(c => c.close);
+    let gains = 0, losses = 0;
+    for (let i = 1; i <= 14; i++) {
+      const diff = closes[i] - closes[i - 1];
+      if (diff >= 0) gains += diff;
+      else losses += Math.abs(diff);
+    }
+    let avgGain = gains / 14, avgLoss = losses / 14;
+    for (let i = 15; i < closes.length; i++) {
+      const diff = closes[i] - closes[i - 1];
+      avgGain = (avgGain * 13 + (diff >= 0 ? diff : 0)) / 14;
+      avgLoss = (avgLoss * 13 + (diff < 0 ? Math.abs(diff) : 0)) / 14;
+    }
+    const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+    latestRsi = parseFloat((100 - (100 / (1 + rs))).toFixed(2));
+  }
+
+  const signal = evalResult?.signal || (latestRsi <= 30 ? 'BUY' : latestRsi >= 70 ? 'SELL' : 'HOLD');
   const signalClass = signal.toLowerCase();
 
   const handleTrade = async (side) => {
@@ -158,8 +181,8 @@ export default function LiveChart({
           </div>
 
           <div className="chart-indicators-readout">
-            <span className="indicator-badge">RSI (14): <strong>{evalResult?.rsi ? evalResult.rsi : '--'}</strong></span>
-            <span className="indicator-badge">EMA 20: <strong>${evalResult?.ema50 ? evalResult.ema50 : '--'}</strong></span>
+            <span className="indicator-badge">RSI (14): <strong>{latestRsi ? latestRsi : '--'}</strong></span>
+            <span className="indicator-badge">EMA 20: <strong>${latestEma ? Number(latestEma).toFixed(2) : '--'}</strong></span>
             <span className="indicator-badge signal">SIGNAL: {signal}</span>
           </div>
         </div>
@@ -188,11 +211,11 @@ export default function LiveChart({
               </div>
               <div className="row">
                 <span>Current Price:</span>
-                <strong>${evalResult?.price ? evalResult.price : '--'}</strong>
+                <strong>${latestPrice ? Number(latestPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--'}</strong>
               </div>
               <div className="row">
                 <span>Execution Mode:</span>
-                <strong style={{ color: executionMode === 'LIVE' ? '#f59e0b' : '#10b981' }}>{executionMode}</strong>
+                <strong style={{ color: executionMode === 'LIVE' ? '#f59e0b' : '#10b981' }}>{executionMode || 'PAPER'}</strong>
               </div>
             </div>
 

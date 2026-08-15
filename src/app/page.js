@@ -261,6 +261,8 @@ export default function DashboardPage() {
             timeframe={timeframe}
             onTimeframeChange={handleTimeframeChange}
             evalResult={botState.evalResult}
+            executionMode={botState.executionMode}
+            onExecuteTrade={handleExecuteManualTrade}
           />
         )}
 
