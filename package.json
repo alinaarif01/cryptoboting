@@ -1,15 +1,22 @@
 {
   "name": "cypherbot-trading-platform",
-  "version": "1.0.0",
-  "description": "CypherBot Pro Crypto Trading Bot & Serverless Node.js Backend Engine",
-  "main": "api/index.js",
+  "version": "2.0.0",
+  "private": true,
+  "description": "CypherBot Pro Crypto Trading Bot - Next.js App Router Edition",
   "scripts": {
-    "start": "node backend/server.js",
-    "dev": "node backend/server.js"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
+    "chart.js": "^4.4.3",
     "cors": "^2.8.6",
     "express": "^4.22.2",
+    "next": "^14.2.5",
+    "react": "^18.3.1",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^18.3.1",
     "ws": "^8.21.3"
   }
 }
