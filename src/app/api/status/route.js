@@ -16,6 +16,23 @@ export async function GET() {
       botConfig = await BotConfig.create({ key: 'main_bot_config' });
     }
 
+    // Auto-populate env API keys if present
+    if (process.env.BINANCE_API_KEY && process.env.BINANCE_API_SECRET) {
+      if (!botConfig.exchangeConfig || !botConfig.exchangeConfig.apiKey) {
+        botConfig.exchangeConfig = {
+          exchange: 'BINANCE',
+          marketType: process.env.BINANCE_MARKET_TYPE || 'SPOT',
+          apiKey: process.env.BINANCE_API_KEY,
+          apiSecret: process.env.BINANCE_API_SECRET,
+          isTestnet: process.env.BINANCE_IS_TESTNET !== 'false',
+          isConnected: true,
+          message: 'Connected via Environment API Keys'
+        };
+        botConfig.executionMode = 'LIVE';
+        await botConfig.save();
+      }
+    }
+
     let wallet = await Wallet.findOne({ key: 'main_paper_wallet' });
     if (!wallet) {
       wallet = await Wallet.create({ key: 'main_paper_wallet' });

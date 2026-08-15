@@ -29,28 +29,25 @@ export async function POST(req) {
     const currentPrice = liveTicker ? liveTicker.price : 65000;
     const amountCrypto = amountUSD / currentPrice;
 
-    const isLive = botConfig.executionMode === 'LIVE';
+    const apiKey = botConfig.exchangeConfig?.apiKey || process.env.BINANCE_API_KEY;
+    const apiSecret = botConfig.exchangeConfig?.apiSecret || process.env.BINANCE_API_SECRET;
+    const isTestnet = botConfig.exchangeConfig?.isTestnet !== false;
+    const marketType = botConfig.exchangeConfig?.marketType || 'SPOT';
+
+    const isLive = botConfig.executionMode === 'LIVE' || (apiKey && apiSecret);
     let exchangeOrderResult = null;
 
-    if (isLive) {
-      const exCfg = botConfig.exchangeConfig || {};
-      if (!exCfg.apiKey || !exCfg.apiSecret) {
-        return NextResponse.json({
-          success: false,
-          error: 'Cannot execute LIVE trade. Please connect your Exchange API Key and Secret in Exchange Settings first.'
-        }, { status: 400 });
-      }
-
-      // Initialize exchangeService with saved keys from MongoDB
+    if (apiKey && apiSecret) {
+      // Initialize exchangeService with saved or env keys
       exchangeService.setCredentials({
-        exchange: exCfg.exchange || 'BINANCE',
-        marketType: exCfg.marketType || 'SPOT',
-        apiKey: exCfg.apiKey,
-        apiSecret: exCfg.apiSecret,
-        isTestnet: Boolean(exCfg.isTestnet)
+        exchange: 'BINANCE',
+        marketType,
+        apiKey,
+        apiSecret,
+        isTestnet
       });
 
-      // Execute Real Spot Order on Binance / Exchange
+      // Execute Real Spot / Futures Order on Binance
       exchangeOrderResult = await exchangeService.placeSpotOrder({
         symbol: rawSym,
         side: side.toUpperCase(),
@@ -60,7 +57,7 @@ export async function POST(req) {
 
       await Log.create({
         tag: 'EXCHANGE',
-        message: `LIVE ${side.toUpperCase()} ORDER EXECUTED ON ${exCfg.exchange}! OrderID: ${exchangeOrderResult.orderId} | Qty: ${amountCrypto.toFixed(5)} ${symbol} @ $${currentPrice.toFixed(2)}`,
+        message: `LIVE ${side.toUpperCase()} ORDER EXECUTED ON BINANCE! OrderID: ${exchangeOrderResult.orderId} | Qty: ${amountCrypto.toFixed(5)} ${symbol} @ $${currentPrice.toFixed(2)}`,
         time: new Date().toLocaleTimeString()
       });
     }
