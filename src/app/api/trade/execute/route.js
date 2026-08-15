@@ -47,6 +47,15 @@ export async function POST(req) {
         isTestnet
       });
 
+      const endpoint = marketType === 'FUTURES' ? '/fapi/v1/order' : '/api/v3/order';
+      const fullUrl = `${exchangeService.baseUrl}${endpoint}`;
+
+      await Log.create({
+        tag: 'API_HIT',
+        message: `[BINANCE API HIT] POST ${fullUrl} | Symbol: ${rawSym} | Side: ${side.toUpperCase()} | Qty: ${amountCrypto.toFixed(5)}`,
+        time: new Date().toLocaleTimeString()
+      });
+
       // Execute Real Spot / Futures Order on Binance
       exchangeOrderResult = await exchangeService.placeSpotOrder({
         symbol: rawSym,
@@ -56,8 +65,8 @@ export async function POST(req) {
       });
 
       await Log.create({
-        tag: 'EXCHANGE',
-        message: `LIVE ${side.toUpperCase()} ORDER EXECUTED ON BINANCE! OrderID: ${exchangeOrderResult.orderId} | Qty: ${amountCrypto.toFixed(5)} ${symbol} @ $${currentPrice.toFixed(2)}`,
+        tag: 'API_RESPONSE',
+        message: `[BINANCE API RESPONSE 200 OK] OrderID: ${exchangeOrderResult.orderId} | Status: ${exchangeOrderResult.status} | ExecutedQty: ${exchangeOrderResult.executedQty} | Response JSON: ${JSON.stringify(exchangeOrderResult.raw)}`,
         time: new Date().toLocaleTimeString()
       });
     }

@@ -212,7 +212,22 @@ class ExchangeService {
       }
 
       const endpoint = this.marketType === 'FUTURES' ? '/fapi/v1/order' : '/api/v3/order';
+      const fullUrl = `${this.baseUrl}${endpoint}`;
+
+      console.log(`\n================== [BINANCE API HIT LOG] ==================`);
+      console.log(`[HTTP METHOD]: POST`);
+      console.log(`[ENDPOINT HIT]: ${fullUrl}`);
+      console.log(`[REQUEST PARAMS]:`, JSON.stringify(params, null, 2));
+      console.log(`===========================================================\n`);
+
       const orderResult = await this.signedRequest('POST', endpoint, params);
+
+      console.log(`\n================= [BINANCE API RESPONSE LOG] =================`);
+      console.log(`[STATUS]: 200 OK`);
+      console.log(`[ORDER ID]: ${orderResult.orderId}`);
+      console.log(`[FULL BINANCE API RESPONSE]:`, JSON.stringify(orderResult, null, 2));
+      console.log(`=============================================================\n`);
+
       return {
         success: true,
         orderId: orderResult.orderId,
@@ -220,9 +235,16 @@ class ExchangeService {
         status: orderResult.status,
         executedQty: orderResult.executedQty || formattedQty,
         cummulativeQuoteQty: orderResult.cummulativeQuoteQty || orderResult.cumQuote || '0',
+        apiHit: {
+          method: 'POST',
+          url: fullUrl,
+          params
+        },
+        apiResponse: orderResult,
         raw: orderResult
       };
     } catch (err) {
+      console.error(`[BINANCE API ERROR]:`, err.message);
       throw new Error(`Live Order Placement Failed: ${err.message}`);
     }
   }
