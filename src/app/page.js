@@ -79,7 +79,8 @@ export default function DashboardPage() {
     const interval = setInterval(() => {
       fetchStatus();
       fetchTickers();
-    }, 4000);
+      fetchKlines(currentPair, timeframe);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [currentPair, timeframe, fetchStatus, fetchTickers, fetchKlines]);

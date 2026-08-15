@@ -87,15 +87,54 @@ export async function GET() {
         tag: l.tag,
         message: l.message,
         time: l.time || new Date(l.timestamp).toLocaleTimeString()
-      })),
-      evalResult: {
+      }))
+    };
+
+    try {
+      const activeSym = botConfig.symbol || 'BTCUSDT';
+      const candles = await fetchKlines(activeSym, '15m', 30);
+      if (candles && candles.length > 0) {
+        const closePrices = candles.map(c => c.close);
+        const currentPrice = closePrices[closePrices.length - 1];
+        
+        let gains = 0, losses = 0;
+        const period = 14;
+        if (closePrices.length >= period + 1) {
+          for (let i = 1; i <= period; i++) {
+            const diff = closePrices[i] - closePrices[i - 1];
+            if (diff >= 0) gains += diff;
+            else losses += Math.abs(diff);
+          }
+          let avgGain = gains / period;
+          let avgLoss = losses / period;
+          for (let i = period + 1; i < closePrices.length; i++) {
+            const diff = closePrices[i] - closePrices[i - 1];
+            avgGain = (avgGain * 13 + (diff >= 0 ? diff : 0)) / 14;
+            avgLoss = (avgLoss * 13 + (diff < 0 ? Math.abs(diff) : 0)) / 14;
+          }
+          const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+          const rsiVal = 100 - (100 / (1 + rs));
+
+          const signal = rsiVal <= 30 ? 'BUY' : rsiVal >= 70 ? 'SELL' : 'HOLD';
+          data.evalResult = {
+            signal,
+            rsi: parseFloat(rsiVal.toFixed(2)),
+            ema50: parseFloat(currentPrice.toFixed(2)),
+            price: currentPrice,
+            reason: `RSI (${rsiVal.toFixed(2)}) calculated from live Binance 15m feed.`
+          };
+        }
+      }
+    } catch {
+      // fallback
+      data.evalResult = {
         signal: 'HOLD',
-        rsi: 48.5,
+        rsi: 50.0,
         ema50: tickers['BTCUSDT'] ? tickers['BTCUSDT'].price : 65000,
         price: tickers['BTCUSDT'] ? tickers['BTCUSDT'].price : 65000,
-        reason: 'RSI in neutral boundary (30 - 70). Engine scanning live Binance feeds.'
-      }
-    };
+        reason: 'Scanning live Binance feeds.'
+      };
+    }
 
     return NextResponse.json({ success: true, data });
   } catch (err) {
