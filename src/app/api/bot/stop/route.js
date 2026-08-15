@@ -1,26 +1,16 @@
 import { NextResponse } from 'next/server';
-import { connectDB } from '../../../../lib/db';
-import BotConfig from '../../../../lib/models/BotConfig';
-import Log from '../../../../lib/models/Log';
+import { getBotEngine } from '../../../../lib/botEngine';
 
 export async function POST() {
   try {
-    await connectDB();
-    let botConfig = await BotConfig.findOne({ key: 'main_bot_config' });
-    if (!botConfig) {
-      botConfig = new BotConfig({ key: 'main_bot_config' });
-    }
+    const engine = getBotEngine();
+    const updatedConfig = engine.stop();
 
-    botConfig.status = 'STOPPED';
-    await botConfig.save();
-
-    await Log.create({
-      tag: 'SYSTEM',
-      message: 'Trading Bot Stopped by user',
-      time: new Date().toLocaleTimeString()
+    return NextResponse.json({
+      success: true,
+      message: 'Trading Bot Stopped successfully',
+      data: updatedConfig
     });
-
-    return NextResponse.json({ success: true, message: 'Bot stopped successfully' });
   } catch (err) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }

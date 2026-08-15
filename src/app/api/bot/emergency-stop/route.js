@@ -1,63 +1,55 @@
 import { NextResponse } from 'next/server';
-import { connectDB } from '../../../../lib/db';
-import BotConfig from '../../../../lib/models/BotConfig';
-import Wallet from '../../../../lib/models/Wallet';
-import Position from '../../../../lib/models/Position';
-import Trade from '../../../../lib/models/Trade';
-import Log from '../../../../lib/models/Log';
+import { dbStore } from '../../../../lib/store';
+import { getBotEngine } from '../../../../lib/botEngine';
 import { fetchLiveTickers } from '../../../../../backend/src/services/marketData';
 
 export async function POST() {
   try {
-    await connectDB();
+    const engine = getBotEngine();
+    engine.stop();
 
-    let botConfig = await BotConfig.findOne({ key: 'main_bot_config' });
-    if (botConfig) {
-      botConfig.status = 'STOPPED';
-      await botConfig.save();
-    }
-
-    let wallet = await Wallet.findOne({ key: 'main_paper_wallet' });
-    if (!wallet) {
-      wallet = await Wallet.create({ key: 'main_paper_wallet' });
-    }
-
-    const positions = await Position.find({});
+    const positions = dbStore.getPositions();
     const tickers = await fetchLiveTickers();
+
+    let totalRecoveredUSD = 0;
 
     for (const pos of positions) {
       const rawSym = pos.symbol.replace('/', '').toUpperCase();
-      const liveTicker = tickers[rawSym];
+      const liveTicker = tickers[rawSym] || tickers[pos.symbol];
       const closePrice = liveTicker ? liveTicker.price : pos.entryPrice;
       const pnlUSD = (closePrice - pos.entryPrice) * pos.amount;
       const pnlPercent = ((closePrice - pos.entryPrice) / pos.entryPrice) * 100;
       const returnUSD = pos.costUSD + pnlUSD;
 
-      wallet.balanceUSD += returnUSD;
+      totalRecoveredUSD += returnUSD;
 
-      await Trade.create({
-        tradeId: `EMG_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      dbStore.addTrade({
         symbol: pos.symbol,
         type: 'SELL',
         price: closePrice,
         amount: pos.amount,
         pnlUSD,
         pnlPercent,
-        reason: 'EMERGENCY_PANIC_CLOSE',
+        reason: 'EMERGENCY_KILL_SWITCH_CLOSE',
         executionMode: pos.executionMode || 'PAPER'
       });
     }
 
-    await wallet.save();
-    await Position.deleteMany({});
+    if (totalRecoveredUSD > 0) {
+      dbStore.updateWallet(w => ({ ...w, balanceUSD: w.balanceUSD + totalRecoveredUSD }));
+    }
 
-    await Log.create({
-      tag: 'RISK',
-      message: '🚨 EMERGENCY PANIC KILL-SWITCH ACTIVATED! Closed all open positions.',
-      time: new Date().toLocaleTimeString()
+    dbStore.clearPositions();
+
+    dbStore.addLog(
+      'RISK',
+      `🚨 EMERGENCY KILL-SWITCH: Closed ${positions.length} active positions, recovered $${totalRecoveredUSD.toFixed(2)} USD to wallet, Bot halted.`
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: '🚨 EMERGENCY PANIC KILL-SWITCH ACTIVATED! All open positions closed at market prices.'
     });
-
-    return NextResponse.json({ success: true, message: '🚨 EMERGENCY KILL-SWITCH ACTIVATED! All positions closed.' });
   } catch (err) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }

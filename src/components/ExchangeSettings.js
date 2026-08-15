@@ -131,8 +131,11 @@ export default function ExchangeSettings({
             <div className="form-group">
               <label>Exchange Platform</label>
               <select value={exchange} onChange={(e) => setExchange(e.target.value)}>
-                <option value="BINANCE">Binance Spot / Futures</option>
-                <option value="BYBIT">Bybit (CCXT)</option>
+                <option value="BINANCE">Binance (Spot & Futures)</option>
+                <option value="BYBIT">Bybit (Spot & Derivatives)</option>
+                <option value="KUCOIN">KuCoin (Spot & Futures)</option>
+                <option value="OKX">OKX (Unified API)</option>
+                <option value="COINBASE">Coinbase Advanced</option>
               </select>
             </div>
 
@@ -140,26 +143,26 @@ export default function ExchangeSettings({
               <label>Market Type</label>
               <select value={marketType} onChange={(e) => setMarketType(e.target.value)}>
                 <option value="SPOT">Spot Market</option>
-                <option value="FUTURES">USD-M Futures</option>
+                <option value="FUTURES">USD-M Perpetual Futures</option>
               </select>
             </div>
           </div>
 
           <div className="form-group" style={{ marginBottom: '12px' }}>
-            <label>Binance API Key</label>
+            <label>{exchange} API Key</label>
             <input
               type="text"
-              placeholder="Paste Binance API Key..."
+              placeholder={`Paste ${exchange} API Key...`}
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
             />
           </div>
 
           <div className="form-group" style={{ marginBottom: '12px' }}>
-            <label>Binance API Secret Key</label>
+            <label>{exchange} API Secret Key</label>
             <input
               type="password"
-              placeholder="Paste Binance API Secret..."
+              placeholder={`Paste ${exchange} API Secret...`}
               value={apiSecret}
               onChange={(e) => setApiSecret(e.target.value)}
             />
@@ -208,7 +211,7 @@ export default function ExchangeSettings({
           Execute an immediate market order directly on Binance ({executionMode === 'LIVE' ? 'LIVE Exchange API' : 'Paper Simulation'}).
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px', alignItems: 'end' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1fr', gap: '14px', alignItems: 'end' }}>
           <div className="form-group">
             <label>Trading Pair</label>
             <select value={tradeSymbol} onChange={(e) => setTradeSymbol(e.target.value)}>
@@ -216,6 +219,14 @@ export default function ExchangeSettings({
               <option value="ETHUSDT">ETH/USDT</option>
               <option value="SOLUSDT">SOL/USDT</option>
               <option value="BNBUSDT">BNB/USDT</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Order Type</label>
+            <select defaultValue="MARKET">
+              <option value="MARKET">Market Order</option>
+              <option value="LIMIT">Limit Order</option>
             </select>
           </div>
 
@@ -230,12 +241,12 @@ export default function ExchangeSettings({
             />
           </div>
 
-          <button className="btn" style={{ background: '#10b981', color: '#fff' }} onClick={() => handleManualTrade('BUY')}>
-            <i className="fa-solid fa-arrow-trend-up"></i> Execute Instant BUY Order
+          <button className="btn" style={{ background: '#10b981', color: '#fff', justifyContent: 'center' }} onClick={() => handleManualTrade('BUY')}>
+            <i className="fa-solid fa-arrow-trend-up"></i> BUY ORDER
           </button>
 
-          <button className="btn" style={{ background: '#f43f5e', color: '#fff' }} onClick={() => handleManualTrade('SELL')}>
-            <i className="fa-solid fa-arrow-trend-down"></i> Execute Instant SELL Order
+          <button className="btn" style={{ background: '#f43f5e', color: '#fff', justifyContent: 'center' }} onClick={() => handleManualTrade('SELL')}>
+            <i className="fa-solid fa-arrow-trend-down"></i> SELL ORDER
           </button>
         </div>
 

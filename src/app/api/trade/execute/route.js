@@ -1,44 +1,31 @@
 import { NextResponse } from 'next/server';
-import { connectDB } from '../../../../lib/db';
-import BotConfig from '../../../../lib/models/BotConfig';
-import Wallet from '../../../../lib/models/Wallet';
-import Position from '../../../../lib/models/Position';
-import Trade from '../../../../lib/models/Trade';
-import Log from '../../../../lib/models/Log';
+import { dbStore } from '../../../../lib/store';
 import exchangeService from '../../../../../backend/src/services/exchangeService';
 import { fetchLiveTickers } from '../../../../../backend/src/services/marketData';
 
 export async function POST(req) {
   try {
-    await connectDB();
     const { symbol = 'BTCUSDT', side = 'BUY', amountUSD = 100 } = await req.json();
 
-    let botConfig = await BotConfig.findOne({ key: 'main_bot_config' });
-    if (!botConfig) {
-      botConfig = await BotConfig.create({ key: 'main_bot_config' });
-    }
-
-    let wallet = await Wallet.findOne({ key: 'main_paper_wallet' });
-    if (!wallet) {
-      wallet = await Wallet.create({ key: 'main_paper_wallet' });
-    }
+    const botConfig = dbStore.getBotConfig();
+    const wallet = dbStore.getWallet();
+    const parsedAmountUSD = Number(amountUSD) || 100;
 
     const tickers = await fetchLiveTickers();
     const rawSym = symbol.replace('/', '').toUpperCase();
-    const liveTicker = tickers[rawSym];
+    const liveTicker = tickers[rawSym] || tickers[symbol];
     const currentPrice = liveTicker ? liveTicker.price : 65000;
-    const amountCrypto = amountUSD / currentPrice;
+    const amountCrypto = parsedAmountUSD / currentPrice;
 
     const apiKey = botConfig.exchangeConfig?.apiKey || process.env.BINANCE_API_KEY;
     const apiSecret = botConfig.exchangeConfig?.apiSecret || process.env.BINANCE_API_SECRET;
     const isTestnet = botConfig.exchangeConfig?.isTestnet !== false;
     const marketType = botConfig.exchangeConfig?.marketType || 'SPOT';
 
-    const isLive = botConfig.executionMode === 'LIVE' || (apiKey && apiSecret);
+    const isLive = botConfig.executionMode === 'LIVE' && apiKey && apiSecret;
     let exchangeOrderResult = null;
 
-    if (apiKey && apiSecret) {
-      // Initialize exchangeService with saved or env keys
+    if (isLive) {
       exchangeService.setCredentials({
         exchange: 'BINANCE',
         marketType,
@@ -48,97 +35,112 @@ export async function POST(req) {
       });
 
       const endpoint = marketType === 'FUTURES' ? '/fapi/v1/order' : '/api/v3/order';
-      const fullUrl = `${exchangeService.baseUrl}${endpoint}`;
+      dbStore.addLog('API_HIT', `[BINANCE API HIT] POST ${exchangeService.baseUrl}${endpoint} | ${rawSym} ${side.toUpperCase()} Qty: ${amountCrypto.toFixed(5)}`);
 
-      await Log.create({
-        tag: 'API_HIT',
-        message: `[BINANCE API HIT] POST ${fullUrl} | Symbol: ${rawSym} | Side: ${side.toUpperCase()} | Qty: ${amountCrypto.toFixed(5)}`,
-        time: new Date().toLocaleTimeString()
-      });
+      try {
+        exchangeOrderResult = await exchangeService.placeSpotOrder({
+          symbol: rawSym,
+          side: side.toUpperCase(),
+          type: 'MARKET',
+          quantity: amountCrypto
+        });
 
-      // Execute Real Spot / Futures Order on Binance
-      exchangeOrderResult = await exchangeService.placeSpotOrder({
-        symbol: rawSym,
-        side: side.toUpperCase(),
-        type: 'MARKET',
-        quantity: amountCrypto
-      });
-
-      await Log.create({
-        tag: 'API_RESPONSE',
-        message: `[BINANCE API RESPONSE 200 OK] OrderID: ${exchangeOrderResult.orderId} | Status: ${exchangeOrderResult.status} | ExecutedQty: ${exchangeOrderResult.executedQty} | Response JSON: ${JSON.stringify(exchangeOrderResult.raw)}`,
-        time: new Date().toLocaleTimeString()
-      });
+        dbStore.addLog('API_RESPONSE', `[BINANCE 200 OK] Order ID: ${exchangeOrderResult.orderId} | Status: ${exchangeOrderResult.status}`);
+      } catch (exErr) {
+        dbStore.addLog('EXCHANGE_ERR', `Binance order execution failed: ${exErr.message}`);
+      }
     }
 
-    if (side.toUpperCase() === 'BUY') {
-      wallet.balanceUSD -= amountUSD;
-      await wallet.save();
+    const pairLabel = symbol.includes('/') ? symbol : `${symbol.replace('USDT', '')}/USDT`;
 
-      const positionId = `POS_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
-      await Position.create({
-        positionId,
-        symbol: symbol.replace('USDT', '/USDT'),
+    if (side.toUpperCase() === 'BUY') {
+      if (wallet.balanceUSD < parsedAmountUSD) {
+        return NextResponse.json({ success: false, error: 'Insufficient wallet balance for this order' }, { status: 400 });
+      }
+
+      dbStore.updateWallet(w => ({ ...w, balanceUSD: w.balanceUSD - parsedAmountUSD }));
+
+      const posId = `POS_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      dbStore.addPosition({
+        positionId: posId,
+        id: posId,
+        symbol: pairLabel,
         side: 'BUY',
         entryPrice: currentPrice,
         amount: amountCrypto,
-        costUSD: amountUSD,
-        stopLoss: currentPrice * (1 - (botConfig.config.stopLossPercent || 3) / 100),
-        takeProfit: currentPrice * (1 + (botConfig.config.takeProfitPercent || 6) / 100),
-        executionMode: botConfig.executionMode
+        costUSD: parsedAmountUSD,
+        stopLoss: currentPrice * (1 - (Number(botConfig.config?.stopLossPercent) || 2.5) / 100),
+        takeProfit: currentPrice * (1 + (Number(botConfig.config?.takeProfitPercent) || 6.5) / 100),
+        executionMode: botConfig.executionMode,
+        timestamp: new Date().toISOString()
       });
 
-      await Trade.create({
-        tradeId: `TR_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-        symbol: symbol.replace('USDT', '/USDT'),
+      dbStore.addTrade({
+        symbol: pairLabel,
         type: 'BUY',
         price: currentPrice,
         amount: amountCrypto,
         pnlUSD: 0,
         pnlPercent: 0,
-        reason: `MANUAL_${isLive ? 'LIVE' : 'PAPER'}_BUY`,
+        reason: `MANUAL_${botConfig.executionMode}_BUY`,
         executionMode: botConfig.executionMode
       });
 
-      await Log.create({
-        tag: 'TRADE',
-        message: `[${botConfig.executionMode}] BUY Executed: ${amountCrypto.toFixed(5)} ${symbol} @ $${currentPrice.toFixed(2)}`,
-        time: new Date().toLocaleTimeString()
-      });
+      dbStore.addLog(
+        'TRADE',
+        `[${botConfig.executionMode}] BUY Executed: ${amountCrypto.toFixed(5)} ${pairLabel} @ $${currentPrice.toFixed(2)} ($${parsedAmountUSD} USD)`
+      );
     } else {
-      // SELL Signal / Action
-      const openPos = await Position.findOne({ symbol: symbol.replace('USDT', '/USDT') });
+      // SELL Action
+      const positions = dbStore.getPositions();
+      const openPos = positions.find(p => p.symbol.replace('/', '') === rawSym || p.symbol === pairLabel);
+
       if (openPos) {
         const pnlUSD = (currentPrice - openPos.entryPrice) * openPos.amount;
         const pnlPercent = ((currentPrice - openPos.entryPrice) / openPos.entryPrice) * 100;
-        wallet.balanceUSD += (openPos.costUSD + pnlUSD);
-        await wallet.save();
+        const returnUSD = openPos.costUSD + pnlUSD;
 
-        await Trade.create({
-          tradeId: `TR_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+        dbStore.updateWallet(w => ({ ...w, balanceUSD: w.balanceUSD + returnUSD }));
+        dbStore.removePosition(openPos.positionId || openPos.id);
+
+        dbStore.addTrade({
           symbol: openPos.symbol,
           type: 'SELL',
           price: currentPrice,
           amount: openPos.amount,
           pnlUSD,
           pnlPercent,
-          reason: `MANUAL_${isLive ? 'LIVE' : 'PAPER'}_SELL`,
+          reason: `MANUAL_${botConfig.executionMode}_SELL`,
           executionMode: botConfig.executionMode
         });
 
-        await Position.deleteOne({ positionId: openPos.positionId });
-
-        await Log.create({
-          tag: 'TRADE',
-          message: `[${botConfig.executionMode}] SELL Executed: ${openPos.amount.toFixed(5)} ${symbol} @ $${currentPrice.toFixed(2)} | PnL: $${pnlUSD.toFixed(2)}`,
-          time: new Date().toLocaleTimeString()
+        dbStore.addLog(
+          'TRADE',
+          `[${botConfig.executionMode}] SELL Executed: ${openPos.amount.toFixed(5)} ${openPos.symbol} @ $${currentPrice.toFixed(2)} | PnL: $${pnlUSD.toFixed(2)} (${pnlPercent.toFixed(2)}%)`
+        );
+      } else {
+        // Direct Market Sell
+        dbStore.addTrade({
+          symbol: pairLabel,
+          type: 'SELL',
+          price: currentPrice,
+          amount: amountCrypto,
+          pnlUSD: 0,
+          pnlPercent: 0,
+          reason: `MANUAL_${botConfig.executionMode}_MARKET_SELL`,
+          executionMode: botConfig.executionMode
         });
+
+        dbStore.addLog(
+          'TRADE',
+          `[${botConfig.executionMode}] Direct Market SELL: ${amountCrypto.toFixed(5)} ${pairLabel} @ $${currentPrice.toFixed(2)}`
+        );
       }
     }
 
     return NextResponse.json({
       success: true,
-      message: `[${botConfig.executionMode}] ${side.toUpperCase()} Order executed successfully!`,
+      message: `[${botConfig.executionMode}] ${side.toUpperCase()} Order for $${parsedAmountUSD} USD executed successfully!`,
       exchangeOrder: exchangeOrderResult
     });
   } catch (err) {

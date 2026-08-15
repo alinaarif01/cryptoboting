@@ -64,42 +64,41 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 24px;
+  padding: 10px 24px;
   background: rgba(13, 18, 30, 0.85);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-color);
   position: sticky;
   top: 0;
   z-index: 100;
-  flex-wrap: wrap;
-  gap: 12px;
+  gap: 16px;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-shrink: 0;
 }
 
 .logo-icon {
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius-md);
   background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 18px;
   color: #fff;
-  box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
 }
 
 .brand-text h1 {
   font-family: var(--font-heading);
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
 .brand-text h1 span {
@@ -116,18 +115,16 @@ body {
   margin-left: 6px;
 }
 
-/* TICKER TAPE */
+/* SLEEK ORIGINAL PILL TICKER TAPE (FULL VISIBILITY - NO CUTOFF) */
 .ticker-tape {
   display: flex;
   align-items: center;
   gap: 16px;
   background: rgba(255, 255, 255, 0.03);
-  padding: 6px 14px;
+  padding: 6px 18px;
   border-radius: 30px;
   border: 1px solid var(--border-color);
-  overflow-x: auto;
-  max-width: 520px;
-  scrollbar-width: none;
+  flex-wrap: nowrap;
 }
 
 .ticker-item {
@@ -135,30 +132,29 @@ body {
   align-items: center;
   gap: 8px;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 12px;
   white-space: nowrap;
+  transition: all 0.2s ease;
 }
 
 .ticker-item .pair {
   color: var(--text-muted);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .ticker-item .price {
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--text-main);
   font-variant-numeric: tabular-nums;
-  min-width: 75px;
-  display: inline-block;
+  min-width: 65px;
 }
 
 .ticker-item .change {
   font-size: 11px;
+  font-weight: 600;
   padding: 2px 6px;
   border-radius: 4px;
   font-variant-numeric: tabular-nums;
-  min-width: 52px;
-  text-align: center;
-  display: inline-block;
 }
 
 .change.positive {
@@ -180,15 +176,23 @@ body {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   flex-shrink: 0;
 }
 
 .master-toggle {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 5px;
   flex-shrink: 0;
+  min-width: 130px;
+}
+
+.master-toggle .btn {
+  padding: 5px 12px;
+  font-size: 11px;
+  justify-content: center;
+  width: 100%;
 }
 
 .status-indicator {
@@ -197,13 +201,23 @@ body {
   justify-content: center;
   gap: 8px;
   font-size: 12px;
-  font-weight: 500;
-  padding: 6px 12px;
+  font-weight: 600;
+  padding: 6px 14px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border-color);
+  color: var(--text-main);
   min-width: 115px;
   flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--font-body);
+}
+
+.status-indicator:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--accent-cyan);
+  transform: translateY(-1px);
 }
 
 .status-indicator .dot {
@@ -220,6 +234,7 @@ body {
 
 .status-indicator.offline .dot {
   background: var(--accent-red);
+  box-shadow: 0 0 8px var(--accent-red);
 }
 
 /* BUTTONS */
@@ -479,24 +494,67 @@ select:focus, input:focus {
   color: #fff;
 }
 
-.chart-indicators-readout {
+.chart-legend-indicators {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
 }
 
-.indicator-badge {
-  font-size: 12px;
+.badge-legend {
+  font-size: 11px;
   font-family: var(--font-mono);
   background: rgba(255, 255, 255, 0.04);
-  padding: 4px 10px;
-  border-radius: 6px;
+  padding: 3px 8px;
+  border-radius: 4px;
   border: 1px solid var(--border-color);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.indicator-badge.signal {
-  background: rgba(56, 189, 248, 0.15);
-  color: var(--accent-cyan);
-  font-weight: 600;
+.badge-legend .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.ema20-dot { background: #38bdf8; box-shadow: 0 0 6px #38bdf8; }
+.ema50-dot { background: #a855f7; box-shadow: 0 0 6px #a855f7; }
+.rsi-dot { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+
+.chart-ohlc-bar {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 6px 12px;
+  margin-bottom: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.ohlc-items {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.ohlc-items span {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.chart-canvas-wrapper {
+  flex: 1;
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .chart-container {

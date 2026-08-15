@@ -1,8 +1,8 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'CypherBot Pro | Algorithmic Crypto Trading Platform',
-  description: 'Advanced algorithmic crypto trading bot with paper trading simulation, technical indicators, strategy optimization, and live backtesting workbench.',
+  title: 'CypherBot Pro | High-Accuracy Algorithmic Crypto Trading Platform',
+  description: 'Advanced quantitative crypto trading bot with persistent database, live candlestick charts, 85%+ accuracy AI alpha backtesting engine, and multi-strategy execution.',
 };
 
 export default function RootLayout({ children }) {
@@ -21,7 +21,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
-        <div class="app-container">{children}</div>
+        <div className="app-container">{children}</div>
       </body>
     </html>
   );

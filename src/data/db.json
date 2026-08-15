@@ -1,0 +1,199 @@
+{
+  "botConfig": {
+    "key": "main_bot_config",
+    "status": "RUNNING",
+    "symbol": "BTCUSDT",
+    "activeStrategy": "AI_ALPHA_85",
+    "executionMode": "PAPER",
+    "config": {
+      "rsiOversold": 32,
+      "rsiOverbought": 68,
+      "rsiPeriod": 14,
+      "emaShort": 20,
+      "emaLong": 50,
+      "atrMultiplier": 1.8,
+      "gridLower": 60000,
+      "gridUpper": 70000,
+      "gridLevels": 5,
+      "stopLossPercent": 2.5,
+      "takeProfitPercent": 6.5,
+      "tradeAllocationUSD": 1000,
+      "minWinRateTarget": 85
+    },
+    "exchangeConfig": {
+      "exchange": "BINANCE",
+      "marketType": "SPOT",
+      "apiKey": "",
+      "apiSecret": "",
+      "isTestnet": true,
+      "isConnected": false
+    },
+    "updatedAt": "2026-08-16T00:00:00.000Z"
+  },
+  "wallet": {
+    "key": "main_paper_wallet",
+    "balanceUSD": 9800,
+    "initialDepositUSD": 10000,
+    "updatedAt": "2026-08-16T00:00:00.000Z"
+  },
+  "positions": [
+    {
+      "positionId": "POS_1786823748075_W1W8",
+      "id": "POS_1786823748075_W1W8",
+      "symbol": "BTC/USDT",
+      "side": "BUY",
+      "entryPrice": 63126.07,
+      "amount": 0.0015841315640273503,
+      "costUSD": 100,
+      "stopLoss": 61547.918249999995,
+      "takeProfit": 67229.26454999999,
+      "executionMode": "PAPER",
+      "timestamp": "2026-08-15T19:55:48.075Z"
+    },
+    {
+      "positionId": "POS_1786823757905_KKZM",
+      "id": "POS_1786823757905_KKZM",
+      "symbol": "BTC/USDT",
+      "side": "BUY",
+      "entryPrice": 63126.07,
+      "amount": 0.0015841315640273503,
+      "costUSD": 100,
+      "stopLoss": 61547.918249999995,
+      "takeProfit": 67229.26454999999,
+      "executionMode": "PAPER",
+      "timestamp": "2026-08-15T19:55:57.905Z"
+    }
+  ],
+  "trades": [
+    {
+      "id": "TR_1786822929600_3A7Z",
+      "symbol": "BTC/USDT",
+      "type": "BUY",
+      "price": 63115.6,
+      "amount": 0.0015843943494159923,
+      "pnlUSD": 0,
+      "pnlPercent": 0,
+      "reason": "MANUAL_PAPER_BUY",
+      "executionMode": "PAPER",
+      "time": "12:42:09 AM",
+      "timestamp": "2026-08-15T19:42:09.601Z"
+    },
+    {
+      "id": "TR_1786822966235_M3LN",
+      "symbol": "BTC/USDT",
+      "type": "SELL",
+      "price": 63115.6,
+      "amount": 0.0015843943494159923,
+      "pnlUSD": 0,
+      "pnlPercent": 0,
+      "reason": "EMERGENCY_KILL_SWITCH_CLOSE",
+      "executionMode": "PAPER",
+      "time": "12:42:46 AM",
+      "timestamp": "2026-08-15T19:42:46.235Z"
+    },
+    {
+      "id": "TR_1786823231428_8C42",
+      "symbol": "BTC/USDT",
+      "type": "SELL",
+      "price": 63115.58,
+      "amount": 0.0015843948514772423,
+      "pnlUSD": 0,
+      "pnlPercent": 0,
+      "reason": "MANUAL_PAPER_MARKET_SELL",
+      "executionMode": "PAPER",
+      "time": "12:47:11 AM",
+      "timestamp": "2026-08-15T19:47:11.428Z"
+    },
+    {
+      "id": "TR_1786823748079_SSFW",
+      "symbol": "BTC/USDT",
+      "type": "BUY",
+      "price": 63126.07,
+      "amount": 0.0015841315640273503,
+      "pnlUSD": 0,
+      "pnlPercent": 0,
+      "reason": "MANUAL_PAPER_BUY",
+      "executionMode": "PAPER",
+      "time": "12:55:48 AM",
+      "timestamp": "2026-08-15T19:55:48.079Z"
+    },
+    {
+      "id": "TR_1786823757910_V0L7",
+      "symbol": "BTC/USDT",
+      "type": "BUY",
+      "price": 63126.07,
+      "amount": 0.0015841315640273503,
+      "pnlUSD": 0,
+      "pnlPercent": 0,
+      "reason": "MANUAL_PAPER_BUY",
+      "executionMode": "PAPER",
+      "time": "12:55:57 AM",
+      "timestamp": "2026-08-15T19:55:57.910Z"
+    }
+  ],
+  "logs": [
+    {
+      "id": "log-init-1",
+      "tag": "SYSTEM",
+      "message": "CypherBot Pro Next.js Trading Engine initialized with Persistent Database.",
+      "time": "12:00:00 AM",
+      "timestamp": "2026-08-16T00:00:00.000Z"
+    },
+    {
+      "id": "log-1786822904432-68nd",
+      "tag": "SYSTEM",
+      "message": "Trading Bot Started: Auto-Trading Active on BTCUSDT using [AI_ALPHA_85] Strategy",
+      "time": "12:41:44 AM",
+      "timestamp": "2026-08-15T19:41:44.432Z"
+    },
+    {
+      "id": "log-1786822929622-yg46",
+      "tag": "TRADE",
+      "message": "[PAPER] BUY Executed: 0.00158 BTC/USDT @ $63115.60 ($100 USD)",
+      "time": "12:42:09 AM",
+      "timestamp": "2026-08-15T19:42:09.622Z"
+    },
+    {
+      "id": "log-1786822965983-98ea",
+      "tag": "SYSTEM",
+      "message": "Trading Bot Stopped by user",
+      "time": "12:42:45 AM",
+      "timestamp": "2026-08-15T19:42:45.983Z"
+    },
+    {
+      "id": "log-1786822966257-pcce",
+      "tag": "RISK",
+      "message": "🚨 EMERGENCY KILL-SWITCH: Closed 1 active positions, recovered $100.00 USD to wallet, Bot halted.",
+      "time": "12:42:46 AM",
+      "timestamp": "2026-08-15T19:42:46.257Z"
+    },
+    {
+      "id": "log-1786823216388-6sa1",
+      "tag": "SYSTEM",
+      "message": "Trading Bot Started: Auto-Trading Active on BTCUSDT using [AI_ALPHA_85] Strategy",
+      "time": "12:46:56 AM",
+      "timestamp": "2026-08-15T19:46:56.388Z"
+    },
+    {
+      "id": "log-1786823231443-90gg",
+      "tag": "TRADE",
+      "message": "[PAPER] Direct Market SELL: 0.00158 BTC/USDT @ $63115.58",
+      "time": "12:47:11 AM",
+      "timestamp": "2026-08-15T19:47:11.443Z"
+    },
+    {
+      "id": "log-1786823748082-xkoy",
+      "tag": "TRADE",
+      "message": "[PAPER] BUY Executed: 0.00158 BTC/USDT @ $63126.07 ($100 USD)",
+      "time": "12:55:48 AM",
+      "timestamp": "2026-08-15T19:55:48.082Z"
+    },
+    {
+      "id": "log-1786823757914-7j5m",
+      "tag": "TRADE",
+      "message": "[PAPER] BUY Executed: 0.00158 BTC/USDT @ $63126.07 ($100 USD)",
+      "time": "12:55:57 AM",
+      "timestamp": "2026-08-15T19:55:57.914Z"
+    }
+  ]
+}
