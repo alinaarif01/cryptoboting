@@ -19,6 +19,7 @@ const BotConfigSchema = new mongoose.Schema({
   },
   exchangeConfig: {
     exchange: { type: String, default: 'BINANCE' },
+    marketType: { type: String, default: 'SPOT' },
     apiKey: { type: String, default: '' },
     apiSecret: { type: String, default: '' },
     isTestnet: { type: Boolean, default: true },

@@ -7,9 +7,13 @@ import exchangeService from '../../../../../backend/src/services/exchangeService
 export async function POST(req) {
   try {
     await connectDB();
-    const { exchange = 'BINANCE', apiKey, apiSecret, isTestnet = true } = await req.json();
+    const { exchange = 'BINANCE', marketType = 'SPOT', apiKey, apiSecret, isTestnet = true } = await req.json();
 
-    exchangeService.setCredentials({ exchange, apiKey, apiSecret, isTestnet });
+    if (!apiKey || !apiSecret) {
+      return NextResponse.json({ success: false, error: 'API Key and Secret Key are required.' }, { status: 400 });
+    }
+
+    exchangeService.setCredentials({ exchange, marketType, apiKey, apiSecret, isTestnet });
     const testRes = await exchangeService.testConnection();
 
     let botConfig = await BotConfig.findOne({ key: 'main_bot_config' });
@@ -18,12 +22,19 @@ export async function POST(req) {
     }
 
     botConfig.exchangeConfig = {
-      exchange,
-      apiKey: apiKey ? '***ENCRYPTED***' : '',
-      isTestnet,
-      isConnected: testRes.success,
+      exchange: exchange.toUpperCase(),
+      marketType: marketType.toUpperCase(),
+      apiKey: apiKey.trim(),
+      apiSecret: apiSecret.trim(),
+      isTestnet: Boolean(isTestnet),
+      isConnected: Boolean(testRes.success),
       message: testRes.message
     };
+
+    if (testRes.success) {
+      botConfig.executionMode = 'LIVE';
+    }
+
     await botConfig.save();
 
     await Log.create({
@@ -32,7 +43,12 @@ export async function POST(req) {
       time: new Date().toLocaleTimeString()
     });
 
-    return NextResponse.json({ success: testRes.success, data: testRes, message: testRes.message });
+    return NextResponse.json({
+      success: testRes.success,
+      data: testRes,
+      message: testRes.message,
+      executionMode: botConfig.executionMode
+    });
   } catch (err) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }

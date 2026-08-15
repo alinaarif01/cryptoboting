@@ -73,19 +73,35 @@ router.post('/wallet/reset', (req, res) => {
 // POST Save Exchange API Config & Test Connection
 router.post('/exchange/config', async (req, res) => {
   try {
-    const { exchange = 'BINANCE', apiKey, apiSecret, isTestnet = true } = req.body;
-    exchangeService.setCredentials({ exchange, apiKey, apiSecret, isTestnet });
+    const { exchange = 'BINANCE', marketType = 'SPOT', apiKey, apiSecret, isTestnet = true } = req.body;
+    exchangeService.setCredentials({ exchange, marketType, apiKey, apiSecret, isTestnet });
     
     const testRes = await exchangeService.testConnection();
     botManager.exchangeConfig = {
       exchange,
+      marketType,
       isTestnet,
       isConnected: testRes.success,
       message: testRes.message
     };
 
+    if (testRes.success) {
+      botManager.executionMode = 'LIVE';
+    }
+
     botManager.log('EXCHANGE', testRes.message);
     res.json({ success: testRes.success, data: testRes, botState: botManager.getState() });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST Execute Manual Trade (Buy / Sell on Binance API or Paper)
+router.post('/trade/execute', async (req, res) => {
+  try {
+    const { symbol = 'BTCUSDT', side = 'BUY', amountUSD = 100 } = req.body;
+    const result = await botManager.executeManualOrder({ symbol, side, amountUSD });
+    res.json({ success: true, message: result.message, data: botManager.getState() });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Chart from 'chart.js/auto';
 
 export default function LiveChart({
@@ -9,10 +9,14 @@ export default function LiveChart({
   onPairChange,
   timeframe,
   onTimeframeChange,
-  evalResult
+  evalResult,
+  executionMode,
+  onExecuteTrade
 }) {
   const canvasRef = useRef(null);
   const chartInstanceRef = useRef(null);
+  const [tradeAmount, setTradeAmount] = useState(100);
+  const [isTrading, setIsTrading] = useState(false);
 
   useEffect(() => {
     if (!canvasRef.current || !klinesData || klinesData.length === 0) return;
@@ -120,6 +124,12 @@ export default function LiveChart({
   const signal = evalResult?.signal || 'HOLD';
   const signalClass = signal.toLowerCase();
 
+  const handleTrade = async (side) => {
+    setIsTrading(true);
+    await onExecuteTrade(side, tradeAmount);
+    setIsTrading(false);
+  };
+
   return (
     <div className="chart-dashboard-grid">
       {/* Main Chart Panel */}
@@ -159,12 +169,14 @@ export default function LiveChart({
         </div>
       </div>
 
-      {/* Side Signal Feed Panel */}
+      {/* Side Signal Feed & Trade Execution Panel */}
       <div className="side-feed-panel">
         <div className="panel signal-panel">
           <div className="panel-header">
-            <h3><i className="fa-solid fa-bolt"></i> Live Algorithmic Signal</h3>
-            <span className="pulse-badge">LIVE ENGINE</span>
+            <h3><i className="fa-solid fa-bolt"></i> Live Trade Execution</h3>
+            <span className="pulse-badge" style={{ background: executionMode === 'LIVE' ? 'rgba(245, 158, 11, 0.2)' : undefined, color: executionMode === 'LIVE' ? '#f59e0b' : undefined }}>
+              {executionMode === 'LIVE' ? 'LIVE EXCHANGE' : 'PAPER SIMULATION'}
+            </span>
           </div>
 
           <div className="signal-card">
@@ -179,10 +191,39 @@ export default function LiveChart({
                 <strong>${evalResult?.price ? evalResult.price : '--'}</strong>
               </div>
               <div className="row">
-                <span>Algorithm Rationale:</span>
-                <span style={{ fontSize: '11px', textAlign: 'right', color: '#38bdf8' }}>
-                  {evalResult?.reason || 'Scanning live market price candles...'}
-                </span>
+                <span>Execution Mode:</span>
+                <strong style={{ color: executionMode === 'LIVE' ? '#f59e0b' : '#10b981' }}>{executionMode}</strong>
+              </div>
+            </div>
+
+            {/* Instant Trade Action Controls */}
+            <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="form-group" style={{ marginBottom: '10px' }}>
+                <label style={{ fontSize: '11px', color: '#94a3b8' }}>Order Value ($ USD)</label>
+                <input
+                  type="number"
+                  value={tradeAmount}
+                  onChange={(e) => setTradeAmount(parseFloat(e.target.value) || 0)}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <button
+                  className="btn btn-start"
+                  style={{ justifyContent: 'center' }}
+                  onClick={() => handleTrade('BUY')}
+                  disabled={isTrading}
+                >
+                  <i className="fa-solid fa-arrow-trend-up"></i> BUY MARKET
+                </button>
+                <button
+                  className="btn btn-stop"
+                  style={{ justifyContent: 'center' }}
+                  onClick={() => handleTrade('SELL')}
+                  disabled={isTrading}
+                >
+                  <i className="fa-solid fa-arrow-trend-down"></i> SELL MARKET
+                </button>
               </div>
             </div>
           </div>

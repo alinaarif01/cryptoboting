@@ -124,6 +124,22 @@ class ExchangeService {
     });
   }
 
+  // Format quantity according to symbol step size / precision requirements
+  formatQuantity(symbol, quantity) {
+    const sym = symbol.replace('/', '').toUpperCase();
+    let decimals = 4;
+    if (sym.startsWith('BTC')) decimals = 5;
+    else if (sym.startsWith('ETH')) decimals = 4;
+    else if (sym.startsWith('BNB')) decimals = 3;
+    else if (sym.startsWith('SOL')) decimals = 2;
+    else if (sym.startsWith('XRP') || sym.startsWith('ADA')) decimals = 1;
+    else if (sym.startsWith('DOGE') || sym.startsWith('SHIB') || sym.startsWith('PEPE')) decimals = 0;
+
+    const val = parseFloat(quantity);
+    if (isNaN(val) || val <= 0) return '0';
+    return val.toFixed(decimals);
+  }
+
   // Test API Key permissions & account connectivity
   async testConnection() {
     if (!this.apiKey || !this.apiSecret) {
@@ -131,13 +147,18 @@ class ExchangeService {
     }
 
     try {
-      // Binance Account Info endpoint
-      const accountInfo = await this.signedRequest('GET', '/api/v3/account');
+      const endpoint = this.marketType === 'FUTURES' ? '/fapi/v2/account' : '/api/v3/account';
+      const accountInfo = await this.signedRequest('GET', endpoint);
+      
+      const canTrade = accountInfo.canTrade !== undefined ? accountInfo.canTrade : true;
+      const rawBalances = accountInfo.balances || accountInfo.assets || [];
+      const filtered = rawBalances.filter(b => parseFloat(b.free || b.walletBalance || 0) > 0 || parseFloat(b.locked || 0) > 0);
+
       return {
         success: true,
-        message: `Successfully connected to ${this.exchange} ${this.isTestnet ? 'Testnet' : 'Mainnet'}!`,
-        canTrade: accountInfo.canTrade,
-        balances: accountInfo.balances ? accountInfo.balances.filter(b => parseFloat(b.free) > 0 || parseFloat(b.locked) > 0) : []
+        message: `Successfully connected to ${this.exchange} ${this.marketType} (${this.isTestnet ? 'Testnet' : 'Mainnet'})!`,
+        canTrade,
+        balances: filtered
       };
     } catch (err) {
       return {
@@ -150,17 +171,19 @@ class ExchangeService {
   // Fetch Exchange Account Balances
   async getAccountBalances() {
     try {
-      const accountInfo = await this.signedRequest('GET', '/api/v3/account');
-      const activeBalances = (accountInfo.balances || []).filter(b => parseFloat(b.free) > 0 || parseFloat(b.locked) > 0);
+      const endpoint = this.marketType === 'FUTURES' ? '/fapi/v2/account' : '/api/v3/account';
+      const accountInfo = await this.signedRequest('GET', endpoint);
+      const rawBalances = accountInfo.balances || accountInfo.assets || [];
+      const activeBalances = rawBalances.filter(b => parseFloat(b.free || b.walletBalance || 0) > 0 || parseFloat(b.locked || 0) > 0);
       
-      const usdt = activeBalances.find(b => b.asset === 'USDT') || { free: '0', locked: '0' };
-      const btc = activeBalances.find(b => b.asset === 'BTC') || { free: '0', locked: '0' };
+      const usdt = activeBalances.find(b => (b.asset || b.symbol) === 'USDT') || { free: '0', locked: '0', walletBalance: '0' };
+      const btc = activeBalances.find(b => (b.asset || b.symbol) === 'BTC') || { free: '0', locked: '0', walletBalance: '0' };
       
       return {
         success: true,
-        usdtFree: parseFloat(usdt.free),
-        usdtLocked: parseFloat(usdt.locked),
-        btcFree: parseFloat(btc.free),
+        usdtFree: parseFloat(usdt.free || usdt.walletBalance || 0),
+        usdtLocked: parseFloat(usdt.locked || 0),
+        btcFree: parseFloat(btc.free || btc.walletBalance || 0),
         allBalances: activeBalances
       };
     } catch (err) {
@@ -168,10 +191,12 @@ class ExchangeService {
     }
   }
 
-  // Execute Real Spot Order on Exchange
+  // Execute Real Spot or Futures Order on Exchange
   async placeSpotOrder({ symbol = 'BTCUSDT', side = 'BUY', type = 'MARKET', quantity, price }) {
     try {
       const formattedSymbol = symbol.replace('/', '').toUpperCase();
+      const formattedQty = this.formatQuantity(formattedSymbol, quantity);
+      
       const params = {
         symbol: formattedSymbol,
         side: side.toUpperCase(),
@@ -179,21 +204,22 @@ class ExchangeService {
       };
 
       if (type.toUpperCase() === 'MARKET') {
-        params.quantity = parseFloat(quantity).toFixed(5);
+        params.quantity = formattedQty;
       } else if (type.toUpperCase() === 'LIMIT') {
-        params.quantity = parseFloat(quantity).toFixed(5);
+        params.quantity = formattedQty;
         params.price = parseFloat(price).toFixed(2);
         params.timeInForce = 'GTC';
       }
 
-      const orderResult = await this.signedRequest('POST', '/api/v3/order', params);
+      const endpoint = this.marketType === 'FUTURES' ? '/fapi/v1/order' : '/api/v3/order';
+      const orderResult = await this.signedRequest('POST', endpoint, params);
       return {
         success: true,
         orderId: orderResult.orderId,
         symbol: orderResult.symbol,
         status: orderResult.status,
-        executedQty: orderResult.executedQty,
-        cummulativeQuoteQty: orderResult.cummulativeQuoteQty,
+        executedQty: orderResult.executedQty || formattedQty,
+        cummulativeQuoteQty: orderResult.cummulativeQuoteQty || orderResult.cumQuote || '0',
         raw: orderResult
       };
     } catch (err) {

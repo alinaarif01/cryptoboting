@@ -185,6 +185,19 @@ export default function DashboardPage() {
     return json;
   };
 
+  const handleExecuteManualTrade = async (payload) => {
+    const res = await fetch('/api/trade/execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if (json.data) {
+      setBotState(json.data);
+    }
+    return json;
+  };
+
   const handleResetWallet = async () => {
     const res = await fetch('/api/wallet/reset', { method: 'POST' });
     const json = await res.json();
@@ -266,6 +279,7 @@ export default function DashboardPage() {
             exchangeConfig={botState.exchangeConfig}
             onSaveExchangeConfig={handleSaveExchangeConfig}
             onResetWallet={handleResetWallet}
+            onExecuteManualTrade={handleExecuteManualTrade}
           />
         )}
 

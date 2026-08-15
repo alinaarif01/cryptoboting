@@ -234,8 +234,11 @@ class BotManager {
     this.paperWallet.positions = remainingPositions;
   }
 
-  async executeBuy(currentPrice, reason) {
+  async executeBuy(currentPrice, reason, targetSymbol, pairLabel) {
+    const sym = targetSymbol || this.symbol;
+    const label = pairLabel || `${sym.replace('USDT', '')}/USDT`;
     const allocation = this.config.tradeAllocationUSD;
+
     if (this.paperWallet.balanceUSD < allocation && this.executionMode === 'PAPER') {
       this.log('ORDER_SKIP', `Insufficient USD balance ($${this.paperWallet.balanceUSD.toFixed(2)}) for buy order of $${allocation}`);
       return;
@@ -252,14 +255,14 @@ class BotManager {
 
     if (this.executionMode === 'LIVE') {
       try {
-        this.log('EXCHANGE', `Dispatching LIVE MARKET BUY Order to ${this.exchangeConfig.exchange} for ${amountCrypto.toFixed(5)} ${this.symbol}...`);
+        this.log('EXCHANGE', `Dispatching LIVE MARKET BUY Order to ${this.exchangeConfig.exchange} for ${amountCrypto.toFixed(5)} ${sym}...`);
         const liveOrder = await exchangeService.placeSpotOrder({
-          symbol: this.symbol,
+          symbol: sym,
           side: 'BUY',
           type: 'MARKET',
           quantity: amountCrypto
         });
-        this.log('EXCHANGE', `LIVE BUY ORDER EXECUTED! Order ID: ${liveOrder.orderId} | Status: ${liveOrder.status}`);
+        this.log('EXCHANGE', `LIVE BUY ORDER EXECUTED ON BINANCE! Order ID: ${liveOrder.orderId} | Status: ${liveOrder.status}`);
       } catch (err) {
         this.log('EXCHANGE_ERROR', `LIVE BUY FAILED: ${err.message}`);
         return;
@@ -270,7 +273,7 @@ class BotManager {
 
     const position = {
       id: `POS-${Date.now()}`,
-      symbol: this.pairLabel,
+      symbol: label,
       entryPrice: currentPrice,
       amount: amountCrypto,
       costUSD: allocation,
@@ -285,7 +288,7 @@ class BotManager {
     const tradeRecord = {
       id: `TR-${Date.now()}`,
       type: 'BUY',
-      symbol: this.pairLabel,
+      symbol: label,
       price: currentPrice,
       amount: amountCrypto,
       totalUSD: allocation,
@@ -297,28 +300,38 @@ class BotManager {
 
     this.tradeHistory.unshift(tradeRecord);
     if (this.tradeHistory.length > 100) this.tradeHistory.pop();
-    this.log('TRADE', `[${this.executionMode}] BUY Executed: ${amountCrypto.toFixed(6)} ${this.pairLabel.split('/')[0]} @ $${currentPrice.toFixed(2)} | ${reason}`);
+    this.log('TRADE', `[${this.executionMode}] BUY Executed: ${amountCrypto.toFixed(6)} ${label.split('/')[0]} @ $${currentPrice.toFixed(2)} | ${reason}`);
   }
 
-  executeSell(currentPrice, reason) {
+  executeSell(currentPrice, reason, targetSymbol, pairLabel) {
     if (this.paperWallet.positions.length === 0) return;
 
-    // Sell the first open position
-    const pos = this.paperWallet.positions.shift();
-    this.closePosition(pos, currentPrice, reason);
+    const label = pairLabel || (targetSymbol ? `${targetSymbol.replace('USDT', '')}/USDT` : null);
+    let posIndex = -1;
+    if (label) {
+      posIndex = this.paperWallet.positions.findIndex(p => p.symbol === label);
+    }
+    if (posIndex === -1) posIndex = 0;
+
+    const pos = this.paperWallet.positions.splice(posIndex, 1)[0];
+    if (pos) {
+      this.closePosition(pos, currentPrice, reason);
+    }
   }
 
   async closePosition(pos, currentPrice, reason) {
+    const rawSym = pos.symbol.replace('/', '').toUpperCase();
+
     if (this.executionMode === 'LIVE') {
       try {
-        this.log('EXCHANGE', `Dispatching LIVE MARKET SELL Order to ${this.exchangeConfig.exchange} for ${pos.amount.toFixed(5)} ${this.symbol}...`);
+        this.log('EXCHANGE', `Dispatching LIVE MARKET SELL Order to ${this.exchangeConfig.exchange} for ${pos.amount.toFixed(5)} ${rawSym}...`);
         const liveOrder = await exchangeService.placeSpotOrder({
-          symbol: this.symbol,
+          symbol: rawSym,
           side: 'SELL',
           type: 'MARKET',
           quantity: pos.amount
         });
-        this.log('EXCHANGE', `LIVE SELL ORDER EXECUTED! Order ID: ${liveOrder.orderId} | Status: ${liveOrder.status}`);
+        this.log('EXCHANGE', `LIVE SELL ORDER EXECUTED ON BINANCE! Order ID: ${liveOrder.orderId} | Status: ${liveOrder.status}`);
       } catch (err) {
         this.log('EXCHANGE_ERROR', `LIVE SELL FAILED: ${err.message}`);
       }
@@ -352,6 +365,22 @@ class BotManager {
     this.tradeHistory.unshift(tradeRecord);
     if (this.tradeHistory.length > 100) this.tradeHistory.pop();
     this.log('TRADE', `[${this.executionMode}] SELL Executed: ${pos.amount.toFixed(6)} ${pos.symbol.split('/')[0]} @ $${currentPrice.toFixed(2)} | PnL: $${pnlUSD.toFixed(2)} (${pnlPercent.toFixed(2)}%) | ${reason}`);
+  }
+
+  async executeManualOrder({ symbol = 'BTCUSDT', side = 'BUY', amountUSD = 100 }) {
+    const rawSym = symbol.replace('/', '').toUpperCase();
+    const pairLabel = `${rawSym.replace('USDT', '')}/USDT`;
+
+    const tickers = getTickerCache();
+    const currentPrice = tickers[rawSym] ? tickers[rawSym].price : 65000;
+
+    if (side.toUpperCase() === 'BUY') {
+      await this.executeBuy(currentPrice, 'MANUAL_UI_TRIGGER', rawSym, pairLabel);
+      return { success: true, message: `Manual BUY order submitted for ${amountUSD} USD on ${pairLabel}` };
+    } else {
+      await this.executeSell(currentPrice, 'MANUAL_UI_TRIGGER', rawSym, pairLabel);
+      return { success: true, message: `Manual SELL order submitted for ${pairLabel}` };
+    }
   }
 
   getWalletSummary(currentPrice = 0) {
