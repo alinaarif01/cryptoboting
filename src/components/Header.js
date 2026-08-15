@@ -34,7 +34,54 @@ export default function Header({ tickers, botStatus, isConnected, onToggleMaster
     }
   }, [tickers]);
 
-  // Connect live Binance multi-ticker WebSocket for instantaneous second-by-second live price ticks
+  // Continuous 4-second live ticker fetch directly from Binance
+  useEffect(() => {
+    const fetchDirectTickers = async () => {
+      try {
+        const symbols = encodeURIComponent(JSON.stringify(['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT']));
+        const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${symbols}`);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          const updates = {};
+          const dirs = {};
+
+          data.forEach(item => {
+            const price = parseFloat(item.lastPrice);
+            const change24h = parseFloat(item.priceChangePercent);
+            const sym = item.symbol;
+            const oldP = prevPricesRef.current[sym];
+
+            if (oldP && oldP !== price) {
+              dirs[sym] = price > oldP ? 'up' : 'down';
+            }
+            prevPricesRef.current[sym] = price;
+
+            updates[sym] = {
+              symbol: sym.replace('USDT', '/USDT'),
+              rawSymbol: sym,
+              price,
+              change24h,
+              high24h: parseFloat(item.highPrice),
+              low24h: parseFloat(item.lowPrice),
+              volume: parseFloat(item.volume)
+            };
+          });
+
+          setLivePrices(prev => ({ ...prev, ...updates }));
+          setPriceDirections(prev => ({ ...prev, ...dirs }));
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    fetchDirectTickers();
+    const timer = setInterval(fetchDirectTickers, 4000); // exactly every 4 seconds
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Real-time Binance WebSocket stream
   useEffect(() => {
     let ws = null;
     try {
