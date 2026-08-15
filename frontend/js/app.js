@@ -44,17 +44,29 @@ class AppController {
 
   // CONNECT TO BACKEND WS & REST
   connectBackend() {
+    this.isWsConnected = false;
+    this.isHttpConnected = false;
+
     api.connectWebSocket(
       (payload) => this.handleWsMessage(payload),
-      (isConnected) => this.updateConnectionStatus(isConnected)
+      (isWsConnected) => {
+        this.isWsConnected = isWsConnected;
+        this.checkOverallConnection();
+      }
     );
 
     const fetchStatus = () => {
       api.getStatus().then(res => {
         if (res && res.success && res.data) {
+          this.isHttpConnected = true;
           this.updateStateUI(res.data);
-          this.updateConnectionStatus(true);
+        } else {
+          this.isHttpConnected = false;
         }
+        this.checkOverallConnection();
+      }).catch(() => {
+        this.isHttpConnected = false;
+        this.checkOverallConnection();
       });
 
       api.getTickers().then(res => {
@@ -74,6 +86,12 @@ class AppController {
     // Polling fallback every 4 seconds (essential for Vercel Serverless)
     setInterval(fetchStatus, 4000);
   }
+
+  checkOverallConnection() {
+    const isConnected = this.isWsConnected || this.isHttpConnected;
+    this.updateConnectionStatus(isConnected);
+  }
+
 
 
 
