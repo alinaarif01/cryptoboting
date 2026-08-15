@@ -16,6 +16,8 @@ app.use(express.json());
 
 // API Routes
 app.use('/api', apiRouter);
+app.use('/', apiRouter);
+
 
 // Serve frontend static assets if built/placed here
 app.use(express.static(path.join(__dirname, '../frontend')));

@@ -1,0 +1,15 @@
+{
+  "name": "cypherbot-trading-platform",
+  "version": "1.0.0",
+  "description": "CypherBot Pro Crypto Trading Bot & Serverless Node.js Backend Engine",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^4.22.2",
+    "ws": "^8.21.3"
+  }
+}
