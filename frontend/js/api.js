@@ -1,6 +1,9 @@
 // Frontend API Client & WebSocket Connection Manager
-const API_BASE = 'http://localhost:5000/api';
-const WS_URL = 'ws://localhost:5000';
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_BASE = isLocal ? 'http://localhost:5000/api' : '/api';
+const WS_PROTOCOL = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const WS_URL = isLocal ? 'ws://localhost:5000' : `${WS_PROTOCOL}//${window.location.host}`;
+
 
 class BotApiClient {
   constructor() {

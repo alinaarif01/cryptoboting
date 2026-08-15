@@ -296,6 +296,7 @@ class BotManager {
     };
 
     this.tradeHistory.unshift(tradeRecord);
+    if (this.tradeHistory.length > 100) this.tradeHistory.pop();
     this.log('TRADE', `[${this.executionMode}] BUY Executed: ${amountCrypto.toFixed(6)} ${this.pairLabel.split('/')[0]} @ $${currentPrice.toFixed(2)} | ${reason}`);
   }
 
@@ -349,6 +350,7 @@ class BotManager {
     };
 
     this.tradeHistory.unshift(tradeRecord);
+    if (this.tradeHistory.length > 100) this.tradeHistory.pop();
     this.log('TRADE', `[${this.executionMode}] SELL Executed: ${pos.amount.toFixed(6)} ${pos.symbol.split('/')[0]} @ $${currentPrice.toFixed(2)} | PnL: $${pnlUSD.toFixed(2)} (${pnlPercent.toFixed(2)}%) | ${reason}`);
   }
 

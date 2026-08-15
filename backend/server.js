@@ -89,3 +89,6 @@ server.listen(PORT, () => {
   console.log(`⚡ WebSocket Stream: ws://localhost:${PORT}`);
   console.log(`====================================================`);
 });
+
+module.exports = app;
+

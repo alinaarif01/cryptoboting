@@ -49,13 +49,22 @@ class AppController {
       (isConnected) => this.updateConnectionStatus(isConnected)
     );
 
-    // Fetch initial status snapshot
-    api.getStatus().then(res => {
-      if (res.success && res.data) {
-        this.updateStateUI(res.data);
-      }
-    });
+    const fetchStatus = () => {
+      api.getStatus().then(res => {
+        if (res && res.success && res.data) {
+          this.updateStateUI(res.data);
+          this.updateConnectionStatus(true);
+        }
+      });
+    };
+
+    // Initial status fetch
+    fetchStatus();
+
+    // Polling fallback every 4 seconds (essential for Vercel Serverless)
+    setInterval(fetchStatus, 4000);
   }
+
 
   updateConnectionStatus(isConnected) {
     const el = document.getElementById('wsStatus');
